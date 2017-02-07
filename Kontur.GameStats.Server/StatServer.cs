@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Runtime.Remoting.Messaging;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -83,17 +84,20 @@ namespace Kontur.GameStats.Server
                 catch (Exception error)
                 {
                     // TODO: log errors
+                    Console.WriteLine(error.StackTrace);
                 }
             }
         }
 
         private async Task HandleContextAsync(HttpListenerContext listenerContext)
         {
-            // TODO: implement request handling
+            // TODO: implement request handlin
+            
+            
 
             listenerContext.Response.StatusCode = (int)HttpStatusCode.OK;
             using (var writer = new StreamWriter(listenerContext.Response.OutputStream))
-                writer.WriteLine("Hello, world!");
+                writer.WriteLine(listenerContext.Request.QueryString.GetKey(0));
         }
 
         private readonly HttpListener listener;
