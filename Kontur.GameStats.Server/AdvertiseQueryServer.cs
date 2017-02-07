@@ -19,8 +19,14 @@ namespace Kontur.GameStats.Server
         public AdvertiseQueryServer(string endpoint, Information info)
         {
             Endpoint = endpoint;
-            Info = new Information();
             Info = info;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is AdvertiseQueryServer)) return false;
+            var advertQuery = (AdvertiseQueryServer) obj;
+            return Endpoint == advertQuery.Endpoint;
         }
     }
 

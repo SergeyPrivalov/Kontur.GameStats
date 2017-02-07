@@ -7,17 +7,15 @@ namespace Kontur.GameStats.Server
 {
     public class QueryProcessor
     {
-        private static Dictionary<string, AdvertiseQueryServer> _advertiseServers
-            = new Dictionary<string, AdvertiseQueryServer>();
-        //private static List<AdvertiseQueryServer> _advertiseServers 
-        //    = new List<AdvertiseQueryServer>();
-        private static Dictionary<string, GameServer> _gameServers 
+        public static List<AdvertiseQueryServer> AdvertiseServers { get; }
+            = new List<AdvertiseQueryServer>();
+
+        private static readonly Dictionary<string, GameServer> GameServers 
             = new Dictionary<string, GameServer>();
 
         public static bool ProcessPutRequest(string requestString, string body)
         {
-            var splitRequest = requestString.Split('/');
-            const string pattern = "/(servers)/([.a-zA-Z0-9]+-[0-9]{1,4})/(info|matches)*";
+            const string pattern = "/(servers)/([\\.a-zA-Z0-9]+-[0-9]{1,4})/(info|matches)";
             var splitedString = Regex.Split(requestString, pattern);
 
             if (splitedString.Length < 3) return false;
@@ -25,9 +23,9 @@ namespace Kontur.GameStats.Server
             switch (splitedString[3])
             {
                 case "info":
-                    return PutInfo(splitRequest[2], body);
+                    return PutInfo(splitedString[2], body);
                 case "matches":
-                    return PutMatches(splitRequest[2], body);
+                    return PutMatches(splitedString[2], body);
                 default:
                     return false;
             }
@@ -35,28 +33,75 @@ namespace Kontur.GameStats.Server
 
         private static bool PutInfo(string endpoint, string body)
         {
-            var advertiseRequest = JsonConvert.DeserializeObject<Information>(body);
-            if (_advertiseServers.ContainsKey(endpoint))
-                _advertiseServers[endpoint] = 
-                    new AdvertiseQueryServer(endpoint, advertiseRequest);
+            var info = JsonConvert.DeserializeObject<Information>(body);
+            var advertRequest = new AdvertiseQueryServer(endpoint, info);
+            var index = AdvertiseServers.IndexOf(advertRequest);
+            if (index >= 0)
+                AdvertiseServers[index] = advertRequest;
             else
-                _advertiseServers
-                    .Add(endpoint, new AdvertiseQueryServer(endpoint, advertiseRequest));
+                AdvertiseServers.Add(advertRequest);
             return true;
         }
 
         private static bool PutMatches(string endpoint, string body)
         {
-            if (!_advertiseServers.ContainsKey(endpoint)) return false;
+            if (AdvertiseServers.All(x => x.Endpoint != endpoint)) return false;
             var gameServer = JsonConvert.DeserializeObject<GameServer>(body);
-            _gameServers.Add(endpoint, gameServer);
+            GameServers.Add(endpoint, gameServer);
             return true;
         }
 
         public static string ProcessGetRequest(string requestString)
         {
-            return "";
+            const string pattern = "/(servers|players|reports)/" +
+                                   "([\\.a-zA-Z0-9]+-[0-9]{1,4}|info)/?" +
+                                   "(info|matches|stats)?";
+            var splitedRequest = Regex.Split(requestString, pattern);
+
+            if (splitedRequest.Length < 2) return "Bad Request";
+      
+            if (splitedRequest[1] == "info") return Json(AdvertiseServers.ToArray());
+
+            switch (splitedRequest[0])
+            {
+                case "servers":
+                    return GetServerInformation(splitedRequest[1],splitedRequest[2]);
+                case "players":
+                case "reports":
+                default:
+                    return "Bad Request";
+            }
         }
 
+        private static string GetServerInformation(string endpoint, string kindOfInfo)
+        {
+            switch (kindOfInfo)
+            {
+                case "info":
+                    return GetAdvertServer(endpoint);
+                case "matches":
+                    return GetAdvertMathc(endpoint);
+                default:
+                    return "bbbb";
+            }
+        }
+
+        private static string GetAdvertServer(string enpoint)
+        {
+            if (AdvertiseServers.All(x => x.Endpoint != enpoint)) return "Not Found";
+            return Json(AdvertiseServers
+                .Where(x => x.Endpoint == enpoint)
+                .Select(x => x.Info));
+        }
+
+        private static string GetAdvertMathc(string endpoint)
+        {
+            return GameServers.ContainsKey(endpoint) ? Json(GameServers[endpoint]) : "Not Found";
+        }
+
+        private static string Json(object obj)
+        {
+            return JsonConvert.SerializeObject(obj);
+        }
     }
 }

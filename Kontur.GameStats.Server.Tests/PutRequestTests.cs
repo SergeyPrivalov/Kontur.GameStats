@@ -20,6 +20,20 @@ namespace Kontur.GameStats.Server.Tests
         }
 
         [TestMethod]
+        public void SameAdvertiseRequest()
+        {
+            var requestString = "/servers/1.2.3.4-1111/info";
+            var body = "{\"name\": \"] My P3rfect Server [\"," +
+                       "\"gameModes\": [ \"DM\", \"TDM\" ]}";
+            QueryProcessor.ProcessPutRequest(requestString, body);
+            var length = QueryProcessor.AdvertiseServers.Count;
+
+            QueryProcessor.ProcessPutRequest(requestString, body);
+
+            Assert.AreEqual(length, QueryProcessor.AdvertiseServers.Count);
+        }
+
+        [TestMethod]
         public void EmtyAdvertiseRequest()
         {
             var requestString = "/servers//info";
