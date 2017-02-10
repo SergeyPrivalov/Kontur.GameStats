@@ -1,14 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Kontur.GameStats.Server
 {
     public class GameServer
     {
+        [JsonIgnore]
+        private DateTime dateAndTime;
+        [JsonIgnore]
+        public DateTime Date { get; private set; }
+        [JsonIgnore]
+        public DateTime DateAndTime {
+            get { return dateAndTime; }
+            set
+            {
+                dateAndTime = value;
+                Date = new DateTime(DateAndTime.Year,
+                    DateAndTime.Month,DateAndTime.Day);
+            } }
+        [JsonIgnore]
+        public string Endpoint { get; set; }
         [JsonProperty("map")]
         public string Map { get; set; }
         [JsonProperty("gameMode")]
@@ -21,5 +32,16 @@ namespace Kontur.GameStats.Server
         public double TimeElapsed { get; set; }
         [JsonProperty("scoreboard")]
         public Player[] Scoreboard { get; set; }
+
+        public GameServer(string map, string gameMode, int fraglimit,
+            int timeLimit, double timeElapsed, Player[] scoreboard)
+        {
+            Map = map;
+            GameMode = gameMode;
+            FragLimit = fraglimit;
+            TimeLimit = timeLimit;
+            TimeElapsed = timeElapsed;
+            Scoreboard = scoreboard;
+        }
     }
 }

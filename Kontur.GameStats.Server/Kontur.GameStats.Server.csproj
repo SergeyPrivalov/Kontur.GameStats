@@ -52,9 +52,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AdvertiseQueryServer.cs" />
+    <Compile Include="CollectedServStats.cs" />
     <Compile Include="GameServer.cs" />
+    <Compile Include="GameStatistic.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="QueryProcessor.cs" />
+    <Compile Include="ServerStats.cs" />
     <Compile Include="StatServer.cs" />
     <Compile Include="EntryPoint.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,6 +1,4 @@
-﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Kontur.GameStats.Server.Tests
 {
@@ -52,7 +50,7 @@ namespace Kontur.GameStats.Server.Tests
                 "{\"name\": \"] My P3rfect Server [\"," +
                 "\"gameModes\": [ \"DM\", \"TDM\" ]}");
 
-            var requestString = "/servers/blabla-8080/matches/<timestamp>";
+            var requestString = "/servers/blabla-8080/matches/2000-01-01T10:00:00Z";
             var body = "{\"map\": \"DM-HelloWorld\"," +
                        "\"gameMode\": \"DM\"," +
                        "\"fragLimit\": 20," +
@@ -71,7 +69,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void PutNoAdveriseMatches()
         {
-            var requestString = "/servers/1.1.1.1-1333/matches/<timestamp>";
+            var requestString = "/servers/1.1.1.1-1333/matches/2012-12-12T12:12:12Z";
             var body = "{\"map\": \"DM-HelloWorld\"," +
                        "\"gameMode\": \"DM\"," +
                        "\"fragLimit\": 20," +
