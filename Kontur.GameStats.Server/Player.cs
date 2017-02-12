@@ -15,7 +15,7 @@ namespace Kontur.GameStats.Server
 
         public Player(string name, int frags, int kills, int deaths)
         {
-            Name = name;
+            Name = name.ToLower();
             Frags = frags;
             Kills = kills;
             Deaths = deaths;

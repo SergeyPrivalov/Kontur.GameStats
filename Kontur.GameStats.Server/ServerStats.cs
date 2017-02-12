@@ -30,9 +30,9 @@ namespace Kontur.GameStats.Server
         {
             TotalMatchesPlaed = totalMatch;
             MaximumMatchesPerDay = maxMatch;
-            AverageMatchesPerDay = avergeMatch;
+            AverageMatchesPerDay = Math.Round(avergeMatch,6);
             MaximumPopulation = maxPopulation;
-            AveragePopulation = averagePopulation;
+            AveragePopulation = Math.Round(averagePopulation,6);
             Top5GameModes = gameModes;
             Top5Maps = maps;
         }

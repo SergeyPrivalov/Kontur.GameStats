@@ -5,9 +5,9 @@ namespace Kontur.GameStats.Server
     public class AdvertiseQueryServer
     {
         [JsonProperty("endpoint")]
-        public string Endpoint { get; set; }
+        public string Endpoint { get; }
         [JsonProperty("info")]
-        public Information Info { get; set; }
+        public Information Info { get; }
 
         public AdvertiseQueryServer(string endpoint, Information info)
         {

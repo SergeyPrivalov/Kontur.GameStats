@@ -40,7 +40,7 @@ namespace Kontur.GameStats.Server
             GameMode = gameMode;
             FragLimit = fraglimit;
             TimeLimit = timeLimit;
-            TimeElapsed = timeElapsed;
+            TimeElapsed = Math.Round(timeElapsed,6);
             Scoreboard = scoreboard;
         }
     }

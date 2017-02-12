@@ -58,7 +58,7 @@ namespace Kontur.GameStats.Server
             return true;
         }
 
-        public static DateTime GetDateTime(string date,string time)
+        private static DateTime GetDateTime(string date,string time)
         {
             var splitDate = date.Split('-').Select(int.Parse).ToArray();
             var splitTime = time.Split(':').Select(int.Parse).ToArray();
@@ -68,43 +68,80 @@ namespace Kontur.GameStats.Server
 
         public static string ProcessGetRequest(string requestString)
         {
-            const string pattern = "/(servers|players|reports)/" +
-                                   "([\\.a-zA-Z0-9]+-[0-9]{1,4}|info)/?" +
-                                   "(info|matches|stats)?/?" +
-                                   "([0-9]{4}-[0-9]{2}-[0-9]{2})?T?" +
-                                   "([0-9]{2}:[0-9]{2}:[0-9]{2})?Z?";
+            const string pattern = "/(servers|players|reports)/";
             var splitedRequest = Regex.Split(requestString, pattern);
 
             if (splitedRequest.Length < 2) return "Bad Request";
-      
-            if (splitedRequest[2] == "info") return Json(AdvertiseServers.ToArray());
 
             switch (splitedRequest[1])
             {
                 case "servers":
-                    return GetServerInformation(splitedRequest.Skip(2).ToArray());
-                case "players": 
+                    return GetServerInformation(splitedRequest[2]);
+                case "players":
+                    return GetPlayersStatistic(splitedRequest[2]);
                 case "reports":
+                    return GetReport(splitedRequest[2]);
                 default:
                     return "Bad Request";
             }
         }
 
-        private static string GetServerInformation(string[] splitedRequest)
+        private static string GetPlayersStatistic(string request)
         {
-            var endpoint = splitedRequest[0];
-            var kindOfRequest = splitedRequest[1];
-            switch (kindOfRequest)
+            var splitRequest = request.Split('/');
+            return Json(GameStatistic.GetPlayerStatistic(splitRequest[0].ToLower()));
+        }
+
+        private static string GetReport(string request)
+        {
+            const string pattern = "^(recent-matches|best-players|popular-servers)/?";
+            var splitRequest = Regex.Split(request, pattern)
+                .Where(x => x != "")
+                .ToArray();
+            var n = 5;
+            if (splitRequest.Length > 1) n = DefineN(int.Parse(splitRequest[1]));
+            if (n == 0) return Json(new string[] {});
+            switch (splitRequest[0])
+            {
+                case "recent-matches":
+                    return Json(GameStatistic.GetRecentMatches(n));
+                case "best-players":
+                    return Json(GameStatistic.GetBestPlayers(n));
+                case "popular-servers":
+                    return Json(GameStatistic.GetPopularServers(n));
+                default:
+                    return "Bad Request";
+            }
+        }
+
+        private static int DefineN(int n)
+        {
+            if (n <= 0) return 0;
+            return n >= 50 ? 50 : n;
+        }
+
+        private static string GetServerInformation(string request)
+        {
+            var pattern = "([\\.a-zA-Z0-9]+-?[0-9]{1,4}|info)/?" +
+                          "(info|matches|stats)?/?" +
+                          "([0-9]{4}-[0-9]{2}-[0-9]{2})?T?" +
+                          "([0-9]{2}:[0-9]{2}:[0-9]{2})?Z?";
+
+            var splitedRequest = Regex.Split(request, pattern);
+            if (splitedRequest[1] == "info") return Json(AdvertiseServers.ToArray());
+            switch (splitedRequest[2])
             {
                 case "info":
-                    return GetAdvertServer(endpoint);
+                    return GetAdvertServer(splitedRequest[1]);
                 case "matches":
                 {
-                    var dateAndTime = GetDateTime(splitedRequest[2], splitedRequest[3]);
-                    return GetAdvertMathc(endpoint, dateAndTime);
+                    var dateAndTime = GetDateTime(splitedRequest[3], splitedRequest[4]);
+                    return GetAdvertMatch(splitedRequest[1], dateAndTime);
                 }
+                case "stats":
+                    return Json(GameStatistic.GetServerStatistic(splitedRequest[1]));
                 default:
-                    return Json(GameStatistic.GetStatistic(endpoint));
+                    return "Bad Request";
             }
         }
 
@@ -117,7 +154,7 @@ namespace Kontur.GameStats.Server
                 .ToArray()[0]);
         }
 
-        private static string GetAdvertMathc(string endpoint, DateTime date)
+        private static string GetAdvertMatch(string endpoint, DateTime date)
         {
             if (GameServers.All(x => x.Endpoint != endpoint)
                 || GameServers.All(x => x.DateAndTime != date))
