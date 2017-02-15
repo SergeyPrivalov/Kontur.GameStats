@@ -91,13 +91,43 @@ namespace Kontur.GameStats.Server
 
         private async Task HandleContextAsync(HttpListenerContext listenerContext)
         {
-            // TODO: implement request handlin
-            
-            
-
-            listenerContext.Response.StatusCode = (int)HttpStatusCode.OK;
-            using (var writer = new StreamWriter(listenerContext.Response.OutputStream))
-                writer.WriteLine(listenerContext.Request.QueryString.GetKey(0));
+            var request = listenerContext.Request;
+            var response = listenerContext.Response;
+            response.StatusCode = (int) HttpStatusCode.OK;
+            var requestString = request.Url.LocalPath;
+            if (request.HttpMethod == "PUT")
+            {
+                var sr = new StreamReader(request.InputStream);
+                var answer = QueryProcessor.ProcessPutRequest(requestString,
+                    sr.ReadToEnd());
+                if (!answer)
+                    response.StatusCode = (int) HttpStatusCode.BadRequest;
+            }
+            else if (request.HttpMethod == "GET")
+            {
+                {
+                    var answer = QueryProcessor.ProcessGetRequest(requestString);
+                    switch (answer)
+                    {
+                        case "Not Found":
+                            response.StatusCode = (int) HttpStatusCode.NotFound;
+                            break;
+                        case "Bad Request":
+                            response.StatusCode = (int) HttpStatusCode.BadRequest;
+                            break;
+                        default:
+                            var buffer = System.Text.Encoding.UTF8.GetBytes(answer);
+                            response.ContentLength64 = buffer.Length;
+                            response.ContentType = "application/json";
+                            var output = response.OutputStream;
+                            output.Write(buffer, 0, buffer.Length);
+                            output.Close();
+                            break;
+                    }
+                }
+            }
+            using (var writer = new StreamWriter(response.OutputStream))
+                writer.WriteLine("Hello world!!!");
         }
 
         private readonly HttpListener listener;
