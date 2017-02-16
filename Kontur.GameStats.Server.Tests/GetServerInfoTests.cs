@@ -7,7 +7,7 @@ namespace Kontur.GameStats.Server.Tests
     [TestClass]
     public class GetServerInfoTests
     {
-        private AdvertiseQueryServer firstServer =
+        private readonly AdvertiseQueryServer firstServer =
             new AdvertiseQueryServer("167.42.23.32-1337",
                 new Information
                 {
@@ -15,7 +15,15 @@ namespace Kontur.GameStats.Server.Tests
                     GameModes = new[] {"DM", "TDM"}
                 });
 
-        private AdvertiseQueryServer secondServer =
+        private readonly GameServer gameServer =
+            new GameServer("DM-HelloWorld", "DM", 20, 20, 12.345678,
+                new[]
+                {
+                    new Player("Player1", 20, 21, 3),
+                    new Player("Player2", 2, 2, 21)
+                });
+
+        private readonly AdvertiseQueryServer secondServer =
             new AdvertiseQueryServer("62.210.26.88-1337",
                 new Information
                 {
@@ -23,19 +31,16 @@ namespace Kontur.GameStats.Server.Tests
                     GameModes = new[] {"DM"}
                 });
 
-        private GameServer gameServer =
-           new GameServer("DM-HelloWorld", "DM", 20, 20, 12.345678,
-               new[] {new Player("Player1", 20, 21, 3),
-                    new Player("Player2", 2, 2, 21)});
 
         [TestMethod]
         public void GetServerInfo()
         {
             QueryProcessor.AdvertiseServers.Add(firstServer);
             QueryProcessor.AdvertiseServers.Add(secondServer);
-            var info = QueryProcessor.Json(QueryProcessor.AdvertiseServers.ToArray());
+            var queryProcessor = new QueryProcessor();
+            var info = queryProcessor.Json(QueryProcessor.AdvertiseServers.ToArray());
 
-            var result = QueryProcessor.ProcessGetRequest("/servers/info");
+            var result = queryProcessor.ProcessGetRequest("/servers/info");
 
             Assert.AreEqual(2, QueryProcessor.AdvertiseServers.Count);
             Assert.AreEqual(info, result);
@@ -46,9 +51,10 @@ namespace Kontur.GameStats.Server.Tests
         {
             const string info = "{\"name\":\"] My P3rfect Server [\"," +
                                 "\"gameModes\":[\"DM\",\"TDM\"]}";
+            var queryProcessor = new QueryProcessor();
 
             var result =
-                QueryProcessor.ProcessGetRequest("/servers/167.42.23.32-1337/info");
+                queryProcessor.ProcessGetRequest("/servers/167.42.23.32-1337/info");
 
             Assert.AreEqual(info, result);
         }
@@ -57,9 +63,10 @@ namespace Kontur.GameStats.Server.Tests
         public void GetNotAdvertInfo()
         {
             const string info = "Not Found";
+            var queryProcessor = new QueryProcessor();
 
             var result =
-                QueryProcessor.ProcessGetRequest("/servers/17.42.3.3-1337/info");
+                queryProcessor.ProcessGetRequest("/servers/17.42.3.3-1337/info");
 
             Assert.AreEqual(info, result);
         }
@@ -69,11 +76,12 @@ namespace Kontur.GameStats.Server.Tests
         {
             QueryProcessor.AdvertiseServers.Add(firstServer);
             gameServer.Endpoint = "167.42.23.32-1337";
-            gameServer.DateAndTime = new DateTime(2017,11,22,15,17,00);
+            gameServer.DateAndTime = new DateTime(2017, 11, 22, 20, 17, 00);
             QueryProcessor.GameServers.Add(gameServer);
             var info = JsonConvert.SerializeObject(gameServer);
+            var queryProcessor = new QueryProcessor();
 
-            var result = QueryProcessor.
+            var result = queryProcessor.
                 ProcessGetRequest("/servers/167.42.23.32-1337/matches/" +
                                   "2017-11-22T15:17:00Z");
 
@@ -84,9 +92,10 @@ namespace Kontur.GameStats.Server.Tests
         public void GetNoAdvertMatchInfo()
         {
             var info = "Not Found";
+            var queryProcessor = new QueryProcessor();
 
             var result =
-                QueryProcessor.ProcessGetRequest("/servers/1.2.2.8-1337/matches/2017-01-22T15:17:00Z");
+                queryProcessor.ProcessGetRequest("/servers/1.2.2.8-1337/matches/2017-01-22T15:17:00Z");
 
             Assert.AreEqual(info, result);
         }

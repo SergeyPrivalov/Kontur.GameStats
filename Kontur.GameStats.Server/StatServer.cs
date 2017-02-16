@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net;
-using System.Runtime.Remoting.Messaging;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,11 +9,31 @@ namespace Kontur.GameStats.Server
 {
     internal class StatServer : IDisposable
     {
+        private readonly HttpListener listener;
+        private bool disposed;
+        private volatile bool isRunning;
+
+        private Thread listenerThread;
+
+        private readonly QueryProcessor queryProcessor = new QueryProcessor();
+
         public StatServer()
         {
             listener = new HttpListener();
         }
-        
+
+        public void Dispose()
+        {
+            if (disposed)
+                return;
+
+            disposed = true;
+
+            Stop();
+
+            listener.Close();
+        }
+
         public void Start(string prefix)
         {
             lock (listener)
@@ -30,7 +50,7 @@ namespace Kontur.GameStats.Server
                         Priority = ThreadPriority.Highest
                     };
                     listenerThread.Start();
-                    
+
                     isRunning = true;
                 }
             }
@@ -47,27 +67,14 @@ namespace Kontur.GameStats.Server
 
                 listenerThread.Abort();
                 listenerThread.Join();
-                
+
                 isRunning = false;
             }
         }
 
-        public void Dispose()
-        {
-            if (disposed)
-                return;
-
-            disposed = true;
-
-            Stop();
-
-            listener.Close();
-        }
-        
         private void Listen()
         {
             while (true)
-            {
                 try
                 {
                     if (listener.IsListening)
@@ -75,7 +82,10 @@ namespace Kontur.GameStats.Server
                         var context = listener.GetContext();
                         Task.Run(() => HandleContextAsync(context));
                     }
-                    else Thread.Sleep(0);
+                    else
+                    {
+                        Thread.Sleep(0);
+                    }
                 }
                 catch (ThreadAbortException)
                 {
@@ -84,9 +94,8 @@ namespace Kontur.GameStats.Server
                 catch (Exception error)
                 {
                     // TODO: log errors
-                    Console.WriteLine(error.StackTrace);
+                    File.AppendAllText("log.txt", error.StackTrace);
                 }
-            }
         }
 
         private async Task HandleContextAsync(HttpListenerContext listenerContext)
@@ -98,7 +107,7 @@ namespace Kontur.GameStats.Server
             if (request.HttpMethod == "PUT")
             {
                 var sr = new StreamReader(request.InputStream);
-                var answer = QueryProcessor.ProcessPutRequest(requestString,
+                var answer = queryProcessor.ProcessPutRequest(requestString,
                     sr.ReadToEnd());
                 if (!answer)
                     response.StatusCode = (int) HttpStatusCode.BadRequest;
@@ -106,8 +115,8 @@ namespace Kontur.GameStats.Server
             else if (request.HttpMethod == "GET")
             {
                 {
-                    var answer = QueryProcessor.ProcessGetRequest(requestString);
-                    switch (answer)
+                    var requestHandlingResult = queryProcessor.ProcessGetRequest(requestString);
+                    switch (requestHandlingResult)
                     {
                         case "Not Found":
                             response.StatusCode = (int) HttpStatusCode.NotFound;
@@ -116,24 +125,17 @@ namespace Kontur.GameStats.Server
                             response.StatusCode = (int) HttpStatusCode.BadRequest;
                             break;
                         default:
-                            var buffer = System.Text.Encoding.UTF8.GetBytes(answer);
+                            var buffer = Encoding.UTF8.GetBytes(requestHandlingResult);
                             response.ContentLength64 = buffer.Length;
                             response.ContentType = "application/json";
-                            var output = response.OutputStream;
-                            output.Write(buffer, 0, buffer.Length);
-                            output.Close();
+                            using (var outputStream = response.OutputStream)
+                            {
+                                await outputStream.WriteAsync(buffer, 0, buffer.Length);
+                            }
                             break;
                     }
                 }
             }
-            using (var writer = new StreamWriter(response.OutputStream))
-                writer.WriteLine("Hello world!!!");
         }
-
-        private readonly HttpListener listener;
-
-        private Thread listenerThread;
-        private bool disposed;
-        private volatile bool isRunning;
     }
 }

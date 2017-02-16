@@ -8,18 +8,20 @@ namespace Kontur.GameStats.Server
 {
     public class QueryProcessor
     {
+        private readonly GameStatistic statistic = new GameStatistic();
+
         public static List<AdvertiseQueryServer> AdvertiseServers { get; }
             = new List<AdvertiseQueryServer>();
 
         public static List<GameServer> GameServers { get; } = new List<GameServer>();
 
-        public static bool ProcessPutRequest(string requestString, string body)
+        public bool ProcessPutRequest(string requestString, string body)
         {
             const string pattern = "/(servers)/" +
                                    "([\\.a-zA-Z0-9]+-[0-9]{1,4})/" +
                                    "(info|matches)/?" +
-                                   "([0-9]{4}-[0-9]{2}-[0-9]{2})?T?" +
-                                   "([0-9]{2}:[0-9]{2}:[0-9]{2})?Z?";
+                                   "([0-9]{4}-[0-9]{2}-[0-9]{2}T" +
+                                   "[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?";
             var splitedString = Regex.Split(requestString, pattern);
 
             if (splitedString.Length <= 3) return false;
@@ -29,13 +31,13 @@ namespace Kontur.GameStats.Server
                 case "info":
                     return PutInfo(splitedString[2], body);
                 case "matches":
-                    return PutMatches(splitedString[2], body, splitedString[4],splitedString[5]);
+                    return PutMatches(splitedString[2], body, splitedString[4]);
                 default:
                     return false;
             }
         }
 
-        private static bool PutInfo(string endpoint, string body)
+        private bool PutInfo(string endpoint, string body)
         {
             var info = JsonConvert.DeserializeObject<Information>(body);
             var advertRequest = new AdvertiseQueryServer(endpoint, info);
@@ -47,26 +49,17 @@ namespace Kontur.GameStats.Server
             return true;
         }
 
-        private static bool PutMatches(string endpoint, string body,
-            string date,string time)
+        private bool PutMatches(string endpoint, string body, string date)
         {
             if (AdvertiseServers.All(x => x.Endpoint != endpoint)) return false;
             var gameServer = JsonConvert.DeserializeObject<GameServer>(body);
             gameServer.Endpoint = endpoint;
-            gameServer.DateAndTime = GetDateTime(date, time);
+            gameServer.DateAndTime = DateTime.Parse(date);
             GameServers.Add(gameServer);
             return true;
         }
 
-        private static DateTime GetDateTime(string date,string time)
-        {
-            var splitDate = date.Split('-').Select(int.Parse).ToArray();
-            var splitTime = time.Split(':').Select(int.Parse).ToArray();
-            return new DateTime(splitDate[0], splitDate[1], splitDate[2],
-                splitTime[0],splitTime[1],splitTime[2]);
-        }
-
-        public static string ProcessGetRequest(string requestString)
+        public string ProcessGetRequest(string requestString)
         {
             const string pattern = "/(servers|players|reports)/";
             var splitedRequest = Regex.Split(requestString, pattern);
@@ -86,13 +79,13 @@ namespace Kontur.GameStats.Server
             }
         }
 
-        private static string GetPlayersStatistic(string request)
+        private string GetPlayersStatistic(string request)
         {
             var splitRequest = request.Split('/');
-            return Json(GameStatistic.GetPlayerStatistic(splitRequest[0].ToLower()));
+            return Json(statistic.GetPlayerStatistic(splitRequest[0].ToLower()));
         }
 
-        private static string GetReport(string request)
+        private string GetReport(string request)
         {
             const string pattern = "^(recent-matches|best-players|popular-servers)/?";
             var splitRequest = Regex.Split(request, pattern)
@@ -104,11 +97,11 @@ namespace Kontur.GameStats.Server
             switch (splitRequest[0])
             {
                 case "recent-matches":
-                    return Json(GameStatistic.GetRecentMatches(n));
+                    return Json(statistic.GetRecentMatches(n));
                 case "best-players":
-                    return Json(GameStatistic.GetBestPlayers(n));
+                    return Json(statistic.GetBestPlayers(n));
                 case "popular-servers":
-                    return Json(GameStatistic.GetPopularServers(n));
+                    return Json(statistic.GetPopularServers(n));
                 default:
                     return "Bad Request";
             }
@@ -120,12 +113,12 @@ namespace Kontur.GameStats.Server
             return n >= 50 ? 50 : n;
         }
 
-        private static string GetServerInformation(string request)
+        private string GetServerInformation(string request)
         {
             var pattern = "([\\.a-zA-Z0-9]+-?[0-9]{1,4}|info)/?" +
                           "(info|matches|stats)?/?" +
-                          "([0-9]{4}-[0-9]{2}-[0-9]{2})?T?" +
-                          "([0-9]{2}:[0-9]{2}:[0-9]{2})?Z?";
+                          "([0-9]{4}-[0-9]{2}-[0-9]{2}T" +
+                          "[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?";
 
             var splitedRequest = Regex.Split(request, pattern);
             if (splitedRequest[1] == "info") return Json(AdvertiseServers.ToArray());
@@ -135,17 +128,17 @@ namespace Kontur.GameStats.Server
                     return GetAdvertServer(splitedRequest[1]);
                 case "matches":
                 {
-                    var dateAndTime = GetDateTime(splitedRequest[3], splitedRequest[4]);
+                    var dateAndTime = DateTime.Parse(splitedRequest[3]);
                     return GetAdvertMatch(splitedRequest[1], dateAndTime);
                 }
                 case "stats":
-                    return Json(GameStatistic.GetServerStatistic(splitedRequest[1]));
+                    return Json(statistic.GetServerStatistic(splitedRequest[1]));
                 default:
                     return "Bad Request";
             }
         }
 
-        private static string GetAdvertServer(string enpoint)
+        private string GetAdvertServer(string enpoint)
         {
             if (AdvertiseServers.All(x => x.Endpoint != enpoint)) return "Not Found";
             return Json(AdvertiseServers
@@ -154,7 +147,7 @@ namespace Kontur.GameStats.Server
                 .ToArray()[0]);
         }
 
-        private static string GetAdvertMatch(string endpoint, DateTime date)
+        private string GetAdvertMatch(string endpoint, DateTime date)
         {
             if (GameServers.All(x => x.Endpoint != endpoint)
                 || GameServers.All(x => x.DateAndTime != date))
@@ -164,7 +157,7 @@ namespace Kontur.GameStats.Server
                 .Where(x => x.DateAndTime == date).ToArray()[0]);
         }
 
-        public static string Json(object obj)
+        public string Json(object obj)
         {
             return JsonConvert.SerializeObject(obj);
         }

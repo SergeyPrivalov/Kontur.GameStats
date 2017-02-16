@@ -1,23 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json;
 
 namespace Kontur.GameStats.Server.Tests
 {
     [TestClass]
     public class StatisticsTests
     {
-        private AdvertiseQueryServer firstServer =
-           new AdvertiseQueryServer("12.12.12.12-1333",
-               new Information
-               {
-                   Name = "] My P3rfect Server [",
-                   GameModes = new[] { "DM", "TDM" }
-               });
+        private readonly DateTime date1 = new DateTime(2020, 01, 22, 15, 16, 22);
+        private readonly DateTime date2 = new DateTime(2020, 01, 23, 14, 00, 00);
 
-        private GameServer gameServer1 =
+        private readonly AdvertiseQueryServer firstServer =
+            new AdvertiseQueryServer("12.12.12.12-1333",
+                new Information
+                {
+                    Name = "] My P3rfect Server [",
+                    GameModes = new[] {"DM", "TDM"}
+                });
+
+        private readonly GameServer gameServer1 =
             new GameServer("DM-HelloWorld", "DM", 20, 20, 12.345678,
                 new[]
                 {
@@ -25,7 +26,7 @@ namespace Kontur.GameStats.Server.Tests
                     new Player("Player1", 2, 2, 21)
                 });
 
-        private GameServer gameServer2 =
+        private readonly GameServer gameServer2 =
             new GameServer("DM-Hello", "TDM", 30, 30, 22.345678,
                 new[]
                 {
@@ -35,7 +36,7 @@ namespace Kontur.GameStats.Server.Tests
                     new Player("Player4", 2, 2, 21)
                 });
 
-        private GameServer gameServer3 =
+        private readonly GameServer gameServer3 =
             new GameServer("DM", "DM", 40, 40, 32.345678,
                 new[]
                 {
@@ -44,8 +45,8 @@ namespace Kontur.GameStats.Server.Tests
                     new Player("Player3", 2, 2, 21)
                 });
 
-        private readonly DateTime date1 = new DateTime(2020,01,22,15,16,22);
-        private readonly DateTime date2 = new DateTime(2020,01,23,14,00,00);
+        private readonly QueryProcessor queryProcessor = new QueryProcessor();
+        private readonly GameStatistic statistic = new GameStatistic();
 
         [TestMethod]
         public void GetServersStats()
@@ -63,7 +64,7 @@ namespace Kontur.GameStats.Server.Tests
                          "\"top5GameModes\":[\"DM\",\"TDM\"]," +
                          "\"top5Maps\":[\"DM-HelloWorld\",\"DM\",\"DM-Hello\"]}";
 
-            var result = QueryProcessor
+            var result = queryProcessor
                 .ProcessGetRequest("/servers/12.12.12.12-1333/stats");
 
             Assert.AreEqual(answer, result);
@@ -83,38 +84,47 @@ namespace Kontur.GameStats.Server.Tests
                                "\"lastMatchPlayed\":\"2020-1-23T14:0:0Z\"," +
                                "\"killToDeathRatio\":1.62963}";
 
-            var result = QueryProcessor.ProcessGetRequest("/players/player20/stats");
+            var result = queryProcessor.ProcessGetRequest("/players/player20/stats");
 
-            Assert.AreEqual(answerString,result);
+            Assert.AreEqual(answerString, result);
         }
 
         [TestMethod]
         public void GetRecentMatches()
         {
-            var answer = QueryProcessor.Json(QueryProcessor.GameServers
+            var answer = queryProcessor.Json(QueryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(10)
                 .Select(x =>
-                    new RecentMatch(x.Endpoint, GameStatistic.DateToString(x.DateAndTime), x))
+                    new RecentMatch
+                    {
+                        Server = x.Endpoint,
+                        Timestamp = statistic.DateToString(x.DateAndTime),
+                        Result = x
+                    })
                 .ToArray());
 
-            var result = QueryProcessor.ProcessGetRequest("/reports/recent-matches/10");
+            var result = queryProcessor.ProcessGetRequest("/reports/recent-matches/10");
 
-            Assert.AreEqual(answer,result);
+            Assert.AreEqual(answer, result);
         }
 
         [TestMethod]
         public void GetRecentMatchesWithoutCount()
         {
-            var answer = QueryProcessor.Json(QueryProcessor.GameServers
+            var answer = queryProcessor.Json(QueryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(5)
                 .Select(x =>
-                    new RecentMatch(x.Endpoint,
-                    GameStatistic.DateToString(x.DateAndTime), x))
+                    new RecentMatch
+                    {
+                        Server = x.Endpoint,
+                        Timestamp = statistic.DateToString(x.DateAndTime),
+                        Result = x
+                    })
                 .ToArray());
 
-            var result = QueryProcessor.ProcessGetRequest("/reports/recent-matches");
+            var result = queryProcessor.ProcessGetRequest("/reports/recent-matches");
 
             Assert.AreEqual(answer, result);
         }
@@ -122,15 +132,19 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetRecentMatchesMoreThan50()
         {
-            var answer = QueryProcessor.Json(QueryProcessor.GameServers
+            var answer = queryProcessor.Json(QueryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(50)
                 .Select(x =>
-                    new RecentMatch(x.Endpoint,
-                    GameStatistic.DateToString(x.DateAndTime), x))
+                    new RecentMatch
+                    {
+                        Server = x.Endpoint,
+                        Timestamp = statistic.DateToString(x.DateAndTime),
+                        Result = x
+                    })
                 .ToArray());
 
-            var result = QueryProcessor.ProcessGetRequest("/reports/recent-matches/100");
+            var result = queryProcessor.ProcessGetRequest("/reports/recent-matches/100");
 
             Assert.AreEqual(answer, result);
         }
@@ -140,7 +154,7 @@ namespace Kontur.GameStats.Server.Tests
         {
             var answer = "[]";
 
-            var result = QueryProcessor.ProcessGetRequest("/reports/recent-matches/-5");
+            var result = queryProcessor.ProcessGetRequest("/reports/recent-matches/-5");
 
             Assert.AreEqual(answer, result);
         }
@@ -148,16 +162,18 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetPopularServer()
         {
-            var answer = QueryProcessor.Json(QueryProcessor.AdvertiseServers
-                .Select(x => new PopularServer(
-                    x.Endpoint,
-                    x.Info.Name,
-                    GameStatistic.GetAverageMatchPerDay(x.Endpoint)))
+            var answer = queryProcessor.Json(QueryProcessor.AdvertiseServers
+                .Select(x => new PopularServer { 
+                    Enpoint = x.Endpoint,
+                    Name = x.Info.Name,
+                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Endpoint)})
                 .OrderByDescending(x => x.AverageMatchPerDay)
                 .Take(15)
                 .ToArray());
 
-            var result = QueryProcessor.ProcessGetRequest("/reports/popular-servers/15");
+            var result = queryProcessor.ProcessGetRequest("/reports/popular-servers/15");
+
+            Assert.AreEqual(answer, result);
         }
 
 
@@ -174,9 +190,7 @@ namespace Kontur.GameStats.Server.Tests
             gameServer.Endpoint = endpoint;
             gameServer.DateAndTime = date;
             for (var i = 0; i < n; i++)
-            {
-                    QueryProcessor.GameServers.Add(gameServer);
-            }
+                QueryProcessor.GameServers.Add(gameServer);
         }
     }
 }

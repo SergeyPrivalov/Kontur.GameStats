@@ -5,6 +5,7 @@ namespace Kontur.GameStats.Server.Tests
     [TestClass]
     public class PutRequestTests
     {
+        QueryProcessor queryProcessor = new QueryProcessor();
         [TestMethod]
         public void AdvertiseRequest()
         {
@@ -12,7 +13,7 @@ namespace Kontur.GameStats.Server.Tests
             var body = "{\"name\": \"] My P3rfect Server [\"," +
                        "\"gameModes\": [ \"DM\", \"TDM\" ]}";
 
-            var result = QueryProcessor.ProcessPutRequest(requestString, body);
+            var result = queryProcessor.ProcessPutRequest(requestString, body);
 
             Assert.AreEqual(true, result);
         }
@@ -23,10 +24,10 @@ namespace Kontur.GameStats.Server.Tests
             var requestString = "/servers/1.2.3.4-1111/info";
             var body = "{\"name\": \"] My P3rfect Server [\"," +
                        "\"gameModes\": [ \"DM\", \"TDM\" ]}";
-            QueryProcessor.ProcessPutRequest(requestString, body);
+            queryProcessor.ProcessPutRequest(requestString, body);
             var length = QueryProcessor.AdvertiseServers.Count;
 
-            QueryProcessor.ProcessPutRequest(requestString, body);
+            queryProcessor.ProcessPutRequest(requestString, body);
 
             Assert.AreEqual(length, QueryProcessor.AdvertiseServers.Count);
         }
@@ -38,7 +39,7 @@ namespace Kontur.GameStats.Server.Tests
             var body = "{\"name\": \"] My P3rfect Server [\"," +
                        "\"gameModes\": [ \"DM\", \"TDM\" ]}";
 
-            var result = QueryProcessor.ProcessPutRequest(requestString, body);
+            var result = queryProcessor.ProcessPutRequest(requestString, body);
 
             Assert.AreEqual(false, result);
         }
@@ -46,7 +47,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void PutMatches()
         {
-            QueryProcessor.ProcessPutRequest("/servers/blabla-8080/info",
+            queryProcessor.ProcessPutRequest("/servers/blabla-8080/info",
                 "{\"name\": \"] My P3rfect Server [\"," +
                 "\"gameModes\": [ \"DM\", \"TDM\" ]}");
 
@@ -61,7 +62,7 @@ namespace Kontur.GameStats.Server.Tests
                        "{\"name\": \"Player2\",\"frags\": 2," +
                        "\"kills\": 2,\"deaths\": 21}]}";
 
-            var result = QueryProcessor.ProcessPutRequest(requestString, body);
+            var result = queryProcessor.ProcessPutRequest(requestString, body);
 
             Assert.AreEqual(true, result);
         }
@@ -80,7 +81,7 @@ namespace Kontur.GameStats.Server.Tests
                        "{\"name\": \"Player2\",\"frags\": 2," +
                        "\"kills\": 2,\"deaths\": 21}]}";
 
-            var result = QueryProcessor.ProcessPutRequest(requestString, body);
+            var result = queryProcessor.ProcessPutRequest(requestString, body);
 
             Assert.AreEqual(false, result);
         }
