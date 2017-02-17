@@ -28,7 +28,8 @@ namespace Kontur.GameStats.Server
 
         private static void RunServer(Options options)
         {
-            using (var server = new StatServer())
+            var processor = new QueryProcessor();
+            using (var server = new StatServer(processor))
             {
                 server.Start(options.Prefix);
 
@@ -40,5 +41,7 @@ namespace Kontur.GameStats.Server
         {
             public string Prefix { get; set; }
         }
+
+
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace Kontur.GameStats.Server
@@ -26,7 +27,7 @@ namespace Kontur.GameStats.Server
 
         public override int GetHashCode()
         {
-            return Endpoint.Select(x => x * 47).Sum();
+            return Endpoint.GetHashCode() * 47;
         }
     }
 

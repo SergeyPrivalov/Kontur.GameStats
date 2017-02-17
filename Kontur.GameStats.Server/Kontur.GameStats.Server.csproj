@@ -83,6 +83,7 @@
     <Compile Include="PopularServer.cs" />
     <Compile Include="QueryProcessor.cs" />
     <Compile Include="RecentMatch.cs" />
+    <Compile Include="ServerDataBase.cs" />
     <Compile Include="ServerStats.cs" />
     <Compile Include="StatServer.cs" />
     <Compile Include="EntryPoint.cs" />

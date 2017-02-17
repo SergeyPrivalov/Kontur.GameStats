@@ -15,9 +15,21 @@ namespace Kontur.GameStats.Server
 
         private Thread listenerThread;
 
-        private readonly QueryProcessor queryProcessor = new QueryProcessor();
+        private readonly IStatServerRequestHandler handler;
 
-        public StatServer()
+        internal class RequestHandlingResult
+        {
+            public byte[] Response { get; set; }
+            public HttpStatusCode Status { get; set; }
+        }
+
+        internal interface IStatServerRequestHandler
+        {
+            RequestHandlingResult HandleGet(Uri uri);
+            RequestHandlingResult HandlePut(Uri uri, string body);
+        }
+
+        public StatServer(IStatServerRequestHandler handler)
         {
             listener = new HttpListener();
         }
@@ -103,36 +115,34 @@ namespace Kontur.GameStats.Server
             var request = listenerContext.Request;
             var response = listenerContext.Response;
             response.StatusCode = (int) HttpStatusCode.OK;
-            var requestString = request.Url.LocalPath;
             if (request.HttpMethod == "PUT")
             {
                 var sr = new StreamReader(request.InputStream);
-                var answer = queryProcessor.ProcessPutRequest(requestString,
-                    sr.ReadToEnd());
-                if (!answer)
+                var requestHandlingResult = handler.HandlePut(request.Url,sr.ReadToEnd());
+                if (requestHandlingResult.Status != HttpStatusCode.Accepted)
                     response.StatusCode = (int) HttpStatusCode.BadRequest;
+                else
+                {
+                    
+                }
             }
             else if (request.HttpMethod == "GET")
             {
                 {
-                    var requestHandlingResult = queryProcessor.ProcessGetRequest(requestString);
-                    switch (requestHandlingResult)
+                    var requestHandlingResult = handler.HandleGet(request.Url);
+                    if (requestHandlingResult.Status != HttpStatusCode.Accepted)
                     {
-                        case "Not Found":
-                            response.StatusCode = (int) HttpStatusCode.NotFound;
-                            break;
-                        case "Bad Request":
-                            response.StatusCode = (int) HttpStatusCode.BadRequest;
-                            break;
-                        default:
-                            var buffer = Encoding.UTF8.GetBytes(requestHandlingResult);
-                            response.ContentLength64 = buffer.Length;
-                            response.ContentType = "application/json";
-                            using (var outputStream = response.OutputStream)
-                            {
-                                await outputStream.WriteAsync(buffer, 0, buffer.Length);
-                            }
-                            break;
+                        response.StatusCode = (int) requestHandlingResult.Status;
+                    }
+                    else
+                    {
+                        response.ContentLength64 = requestHandlingResult.Response.Length;
+                        response.ContentType = "application/json";
+                        using (var outputStream = response.OutputStream)
+                        {
+                            await outputStream.WriteAsync(requestHandlingResult.Response, 0,
+                                requestHandlingResult.Response.Length);
+                        }
                     }
                 }
             }

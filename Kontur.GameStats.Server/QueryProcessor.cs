@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
 namespace Kontur.GameStats.Server
 {
-    public class QueryProcessor
+    public class QueryProcessor : StatServer.IStatServerRequestHandler
     {
         private readonly GameStatistic statistic = new GameStatistic();
 
@@ -160,6 +162,35 @@ namespace Kontur.GameStats.Server
         public string Json(object obj)
         {
             return JsonConvert.SerializeObject(obj);
+        }
+
+        public StatServer.RequestHandlingResult HandleGet(Uri uri)
+        {
+            var requestAnswer = ProcessGetRequest(uri.LocalPath);
+            var result = new StatServer.RequestHandlingResult();
+            switch (requestAnswer)
+            {
+                case "Bad Request":
+                    result.Status = HttpStatusCode.BadRequest;
+                    break;
+                case "Not Found":
+                    result.Status = HttpStatusCode.NotFound;
+                    break;
+                default:
+                    result.Status = HttpStatusCode.Accepted;
+                    result.Response = Encoding.ASCII.GetBytes(requestAnswer);
+                    break;
+            }
+            return result;
+        }
+
+        public StatServer.RequestHandlingResult HandlePut(Uri uri, string body)
+        {
+            var requestAnswer = ProcessPutRequest(uri.LocalPath, body);
+            return new StatServer.RequestHandlingResult
+            {
+                Status = requestAnswer ? HttpStatusCode.Accepted : HttpStatusCode.BadRequest
+            };
         }
     }
 }
