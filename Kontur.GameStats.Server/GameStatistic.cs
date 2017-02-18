@@ -61,8 +61,7 @@ namespace Kontur.GameStats.Server
             };
         }
 
-        private Player[] GetPlayerStats(IEnumerable<GameServer> gameServers,
-            string name)
+        private Player[] GetPlayerStats(IEnumerable<GameServer> gameServers, string name)
         {
             return gameServers
                 .SelectMany(x => x.Scoreboard.Where(y => y.Name == name))
@@ -74,8 +73,7 @@ namespace Kontur.GameStats.Server
             return GetDivision(stats.Sum(x => x.Kills), stats.Sum(x => x.Deaths));
         }
 
-        private double GetAverageScoreboardPercent(GameServer[] gameServers,
-            string name)
+        private double GetAverageScoreboardPercent(GameServer[] gameServers, string name)
         {
             var averageScoreboard = new double[gameServers.Length];
             for (var j = 0; j < gameServers.Length; ++j)
@@ -83,7 +81,7 @@ namespace Kontur.GameStats.Server
                 var scoreboardLength = gameServers[j].Scoreboard.Length;
                 for (var i = 0; i < scoreboardLength; ++i)
                     if (gameServers[j].Scoreboard[i].Name == name)
-                        averageScoreboard[j] = (double) (scoreboardLength - (i + 1))
+                        averageScoreboard[j] = (double)(scoreboardLength - (i + 1))
                                                / (scoreboardLength - 1) * 100;
             }
             return Math.Round(averageScoreboard.Average(), 6);

@@ -5,6 +5,7 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using System.Data.SQLite;
 
 namespace Kontur.GameStats.Server
 {
@@ -16,6 +17,14 @@ namespace Kontur.GameStats.Server
             = new List<AdvertiseQueryServer>();
 
         public static List<GameServer> GameServers { get; } = new List<GameServer>();
+
+        private ServerDataBase dataBase;
+
+        public QueryProcessor()
+        {
+            dataBase = new ServerDataBase();
+            dataBase.GetAllData();
+        }
 
         public bool ProcessPutRequest(string requestString, string body)
         {
@@ -48,6 +57,7 @@ namespace Kontur.GameStats.Server
                 AdvertiseServers[index] = advertRequest;
             else
                 AdvertiseServers.Add(advertRequest);
+            dataBase.AddAdvertServer(advertRequest);
             return true;
         }
 
@@ -58,6 +68,7 @@ namespace Kontur.GameStats.Server
             gameServer.Endpoint = endpoint;
             gameServer.DateAndTime = DateTime.Parse(date);
             GameServers.Add(gameServer);
+            dataBase.AddGameServer(gameServer);
             return true;
         }
 
@@ -95,7 +106,7 @@ namespace Kontur.GameStats.Server
                 .ToArray();
             var n = 5;
             if (splitRequest.Length > 1) n = DefineN(int.Parse(splitRequest[1]));
-            if (n == 0) return Json(new string[] {});
+            if (n == 0) return Json(new string[] { });
             switch (splitRequest[0])
             {
                 case "recent-matches":
@@ -129,10 +140,10 @@ namespace Kontur.GameStats.Server
                 case "info":
                     return GetAdvertServer(splitedRequest[1]);
                 case "matches":
-                {
-                    var dateAndTime = DateTime.Parse(splitedRequest[3]);
-                    return GetAdvertMatch(splitedRequest[1], dateAndTime);
-                }
+                    {
+                        var dateAndTime = DateTime.Parse(splitedRequest[3]);
+                        return GetAdvertMatch(splitedRequest[1], dateAndTime);
+                    }
                 case "stats":
                     return Json(statistic.GetServerStatistic(splitedRequest[1]));
                 default:
@@ -164,7 +175,7 @@ namespace Kontur.GameStats.Server
             return JsonConvert.SerializeObject(obj);
         }
 
-        public StatServer.RequestHandlingResult HandleGet(Uri uri)
+        StatServer.RequestHandlingResult StatServer.IStatServerRequestHandler.HandleGet(Uri uri)
         {
             var requestAnswer = ProcessGetRequest(uri.LocalPath);
             var result = new StatServer.RequestHandlingResult();
@@ -184,7 +195,7 @@ namespace Kontur.GameStats.Server
             return result;
         }
 
-        public StatServer.RequestHandlingResult HandlePut(Uri uri, string body)
+        StatServer.RequestHandlingResult StatServer.IStatServerRequestHandler.HandlePut(Uri uri, string body)
         {
             var requestAnswer = ProcessPutRequest(uri.LocalPath, body);
             return new StatServer.RequestHandlingResult

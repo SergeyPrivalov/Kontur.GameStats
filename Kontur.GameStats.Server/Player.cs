@@ -4,6 +4,10 @@ namespace Kontur.GameStats.Server
 {
     public class Player
     {
+        public Player()
+        {
+        }
+
         public Player(string name, int frags, int kills, int deaths)
         {
             Name = name.ToLower();

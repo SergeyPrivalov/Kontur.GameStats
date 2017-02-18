@@ -5,7 +5,13 @@ namespace Kontur.GameStats.Server
 {
     public class GameServer
     {
-        [JsonIgnore] private DateTime dateAndTime;
+        [JsonIgnore]
+        private DateTime dateAndTime;
+
+        public GameServer()
+        {
+
+        }
 
         public GameServer(string map, string gameMode, int fraglimit,
             int timeLimit, double timeElapsed, Player[] scoreboard)
