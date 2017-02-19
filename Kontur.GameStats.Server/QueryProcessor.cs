@@ -5,7 +5,6 @@ using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
-using System.Data.SQLite;
 
 namespace Kontur.GameStats.Server
 {
@@ -13,17 +12,45 @@ namespace Kontur.GameStats.Server
     {
         private readonly GameStatistic statistic = new GameStatistic();
 
-        public static List<AdvertiseQueryServer> AdvertiseServers { get; }
-            = new List<AdvertiseQueryServer>();
-
-        public static List<GameServer> GameServers { get; } = new List<GameServer>();
-
-        private ServerDataBase dataBase;
+        private readonly ServerDataBase dataBase;
 
         public QueryProcessor()
         {
             dataBase = new ServerDataBase();
-            dataBase.GetAllData();
+        }
+
+        public static List<AdvertiseQueryServer> AdvertiseServers { get; set; }
+            = new List<AdvertiseQueryServer>();
+
+        public static List<GameServer> GameServers { get; set; } = new List<GameServer>();
+
+        public RequestHandlingResult HandleGet(Uri uri)
+        {
+            var requestAnswer = ProcessGetRequest(uri.LocalPath);
+            var result = new RequestHandlingResult();
+            switch (requestAnswer)
+            {
+                case "Bad Request":
+                    result.Status = HttpStatusCode.BadRequest;
+                    break;
+                case "Not Found":
+                    result.Status = HttpStatusCode.NotFound;
+                    break;
+                default:
+                    result.Status = HttpStatusCode.Accepted;
+                    result.Response = Encoding.ASCII.GetBytes(requestAnswer);
+                    break;
+            }
+            return result;
+        }
+
+        public RequestHandlingResult HandlePut(Uri uri, string body)
+        {
+            var requestAnswer = ProcessPutRequest(uri.LocalPath, body);
+            return new RequestHandlingResult
+            {
+                Status = requestAnswer ? HttpStatusCode.Accepted : HttpStatusCode.BadRequest
+            };
         }
 
         public bool ProcessPutRequest(string requestString, string body)
@@ -106,7 +133,7 @@ namespace Kontur.GameStats.Server
                 .ToArray();
             var n = 5;
             if (splitRequest.Length > 1) n = DefineN(int.Parse(splitRequest[1]));
-            if (n == 0) return Json(new string[] { });
+            if (n == 0) return Json(new string[] {});
             switch (splitRequest[0])
             {
                 case "recent-matches":
@@ -140,10 +167,10 @@ namespace Kontur.GameStats.Server
                 case "info":
                     return GetAdvertServer(splitedRequest[1]);
                 case "matches":
-                    {
-                        var dateAndTime = DateTime.Parse(splitedRequest[3]);
-                        return GetAdvertMatch(splitedRequest[1], dateAndTime);
-                    }
+                {
+                    var dateAndTime = DateTime.Parse(splitedRequest[3]);
+                    return GetAdvertMatch(splitedRequest[1], dateAndTime);
+                }
                 case "stats":
                     return Json(statistic.GetServerStatistic(splitedRequest[1]));
                 default:
@@ -173,35 +200,6 @@ namespace Kontur.GameStats.Server
         public string Json(object obj)
         {
             return JsonConvert.SerializeObject(obj);
-        }
-
-        public RequestHandlingResult HandleGet(Uri uri)
-        {
-            var requestAnswer = ProcessGetRequest(uri.LocalPath);
-            var result = new RequestHandlingResult();
-            switch (requestAnswer)
-            {
-                case "Bad Request":
-                    result.Status = HttpStatusCode.BadRequest;
-                    break;
-                case "Not Found":
-                    result.Status = HttpStatusCode.NotFound;
-                    break;
-                default:
-                    result.Status = HttpStatusCode.Accepted;
-                    result.Response = Encoding.ASCII.GetBytes(requestAnswer);
-                    break;
-            }
-            return result;
-        }
-
-        public RequestHandlingResult HandlePut(Uri uri, string body)
-        {
-            var requestAnswer = ProcessPutRequest(uri.LocalPath, body);
-            return new RequestHandlingResult
-            {
-                Status = requestAnswer ? HttpStatusCode.Accepted : HttpStatusCode.BadRequest
-            };
         }
     }
 }
