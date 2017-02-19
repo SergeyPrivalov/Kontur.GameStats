@@ -9,18 +9,15 @@ namespace Kontur.GameStats.Server
 {
     public class ServerDataBase
     {
-        private readonly string baseName = "D:\\StatisticServer.db";
-        private readonly SQLiteConnection connection;
+        private readonly string baseName = "StatisticServer.db";
+        private SQLiteConnection connection;
 
         public ServerDataBase()
         {
-            SQLiteConnection.CreateFile(baseName);
-            //var factory = (SQLiteFactory) DbProviderFactories.GetFactory("System.Data.SQLite");
-            using (connection = new SQLiteConnection($"Data Source={baseName};"))//(SQLiteConnection) factory.CreateConnection())
+            //SQLiteConnection.CreateFile(baseName);
+            using (connection = new SQLiteConnection($"Data Source={baseName};"))
             {
-                //connection.ConnectionString = "Data Source = " + baseName;
                 if (!File.Exists(baseName)) CreateDb();
-                else connection.Open();
             }
         }
 
@@ -28,32 +25,33 @@ namespace Kontur.GameStats.Server
         {
             SQLiteConnection.CreateFile(baseName);
             connection.Open();
-            const string advertTable = @"CREATE TABLE [AdvertiseServers] (" +
-                                       "[id] integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
-                                       "[endpoint] char(45) NOT NULL," +
-                                       "[name] char(60) NOT NULL);";
-            const string gameModesTable = @"CREATE TABLE [GameModes] (" +
-                                          "[id] integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
-                                          "[endpoint] char(45) NOT NULL," +
-                                          "[mode] char(5) NOT NULL);";
-            const string gameServersTable = @"CREATE TABLE [GameServers] (" +
-                                            "[id] integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
-                                            "[endpoint] char(45) NOT NULL," +
-                                            "[date] char(20) NOT NULL," +
-                                            "[mode] char(5) NOT NULL," +
-                                            "[map] char(60) NOT NULL" +
-                                            "[fragLimit] int NOT NULL," +
-                                            "[timeLimit] int NOT NULL," +
-                                            "[timeElapsed] REAL NOT NULL);";
-            const string plaersTable = @"CREATE TABLE [Players] (" +
-                                       "[id] integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
-                                       "[endpoint] char(45) NOT NULL," +
-                                       "[date] char(20) NOT NULL," +
-                                       "[name] char(60) NOT NULL" +
-                                       "[frags] int NOT NULL" +
-                                       "[kills] int NOT NULL" +
-                                       "[deaths] int NOT NULL);";
+            const string advertTable = @"CREATE TABLE AdvertiseServers(" +
+                                       "id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
+                                       "endpoint char(45) NOT NULL," +
+                                       "name char(60) NOT NULL);";
+            const string gameModesTable = @"CREATE TABLE GameModes (" +
+                                          "id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
+                                          "endpoint char(45) NOT NULL," +
+                                          "mode char(5) NOT NULL);";
+            const string gameServersTable = @"CREATE TABLE GameServers (" +
+                                            "id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
+                                            "endpoint char(45) NOT NULL," +
+                                            "date char(20) NOT NULL," +
+                                            "mode char(5) NOT NULL," +
+                                            "map char(60) NOT NULL" +
+                                            "fragLimit int NOT NULL," +
+                                            "timeLimit int NOT NULL," +
+                                            "timeElapsed REAL NOT NULL);";
+            const string plaersTable = @"CREATE TABLE Players (" +
+                                       "id integer PRIMARY KEY AUTOINCREMENT NOT NULL," +
+                                       "endpoint char(45) NOT NULL," +
+                                       "date char(20) NOT NULL," +
+                                       "name char(60) NOT NULL" +
+                                       "frags int NOT NULL" +
+                                       "kills int NOT NULL" +
+                                       "deaths int NOT NULL);";
             ExecuteCommand(advertTable + gameModesTable + gameServersTable + plaersTable);
+            connection.Close();
         }
 
         private void ExecuteCommand(string commandString)
@@ -92,64 +90,78 @@ namespace Kontur.GameStats.Server
 
         public void GetAllData()
         {
-            var data = new DataSet();
-            data.Reset();
-            var ad = new SQLiteDataAdapter();
-            ad.Fill(data);
-            ReadAdvertServers(data.Tables[0], data.Tables[1]);
-            ReadGameServers(data.Tables[2], data.Tables[3]);
+            connection = new SQLiteConnection($"Data Source={baseName};");
+            connection.Open();
+            var advertCommand = new SQLiteCommand("SELECT * FROM AdvertiseServers",connection);
+            var modeCommand = new SQLiteCommand("SELECT * FROM GameModes", connection);
+            var serverCommand = new SQLiteCommand("SELECT * FROM GameServers", connection);
+            var scoreboardCommand = new SQLiteCommand("SELECT * FROM Players", connection);
+            try
+            {
+                ReadAdvertServers(advertCommand.ExecuteReader(), modeCommand.ExecuteReader());
+                ReadGameServers(serverCommand.ExecuteReader(), scoreboardCommand.ExecuteReader());
+            }
+            catch (SQLiteException e)
+            {
+                Console.WriteLine(e.StackTrace);
+                throw;
+            }
         }
 
-        private void ReadAdvertServers(DataTable advertTable, DataTable modesTable)
+        private void ReadAdvertServers(SQLiteDataReader advertTable, SQLiteDataReader modesTable)
         {
             var dictionary = new Dictionary<string, List<string>>();
-            foreach (DataRow row in modesTable.Rows)
+            while (modesTable.Read())
             {
-                var endpoint = row[1].ToString();
+                var endpoint = modesTable["endpoint"].ToString();
                 if (!dictionary.ContainsKey(endpoint))
                     dictionary.Add(endpoint, new List<string>());
-                dictionary[endpoint].Add(row[2].ToString());
+                dictionary[endpoint].Add(modesTable["name"].ToString());
             }
-            foreach (DataRow row in advertTable.Rows)
+            while (advertTable.Read())
             {
-                var endpoint = row[1].ToString();
+                var endpoint = advertTable["endpoint"].ToString();
                 QueryProcessor.AdvertiseServers.Add(new AdvertiseQueryServer(endpoint,
-                    new Information { Name = row[2].ToString(), GameModes = dictionary[endpoint].ToArray() }));
+                    new Information
+                    {
+                        Name = advertTable["name"].ToString(),
+                        GameModes = dictionary[endpoint].ToArray()
+                    }));
             }
         }
 
-        private void ReadGameServers(DataTable serversTable, DataTable playersTable)
+        private void ReadGameServers(SQLiteDataReader serversTable, SQLiteDataReader playersTable)
         {
             var playerDictionary = new Dictionary<string, Dictionary<DateTime, List<Player>>>();
-            foreach (DataRow row in playersTable.Rows)
+            while (playersTable.Read())
             {
-                var endpoint = row[1].ToString();
-                var date = DateTime.Parse(row[2].ToString());
+                var endpoint = playersTable["endpoint"].ToString();
+                var date = DateTime.Parse(playersTable["date"].ToString());
                 if (!playerDictionary.ContainsKey(endpoint))
                     playerDictionary.Add(endpoint, new Dictionary<DateTime, List<Player>>());
                 if (!playerDictionary[endpoint].ContainsKey(date))
                     playerDictionary[endpoint].Add(date, new List<Player>());
                 playerDictionary[endpoint][date].Add(new Player
                 {
-                    Name = row[3].ToString(),
-                    Frags = int.Parse(row[4].ToString()),
-                    Kills = int.Parse(row[5].ToString()),
-                    Deaths = int.Parse(row[6].ToString())
+                    Name = playersTable["name"].ToString(),
+                    Frags = int.Parse(playersTable["frags"].ToString()),
+                    Kills = int.Parse(playersTable["kills"].ToString()),
+                    Deaths = int.Parse(playersTable["deaths"].ToString())
                 });
             }
-            foreach (DataRow row in serversTable.Rows)
+            while (serversTable.Read())
             {
-                var endpoint = row[1].ToString();
-                var date = DateTime.Parse(row[2].ToString());
+                var endpoint = serversTable["endpoint"].ToString();
+                var date = DateTime.Parse(serversTable["date"].ToString());
                 QueryProcessor.GameServers.Add(new GameServer
                 {
                     Endpoint = endpoint,
                     DateAndTime = date,
-                    GameMode = row[3].ToString(),
-                    Map = row[4].ToString(),
-                    FragLimit = int.Parse(row[5].ToString()),
-                    TimeLimit = int.Parse(row[6].ToString()),
-                    TimeElapsed = double.Parse(row[7].ToString()),
+                    GameMode = serversTable["mode"].ToString(),
+                    Map = serversTable["map"].ToString(),
+                    FragLimit = int.Parse(serversTable["fragLimit"].ToString()),
+                    TimeLimit = int.Parse(serversTable["timeLimit"].ToString()),
+                    TimeElapsed = double.Parse(serversTable["timeElapsed"].ToString()),
                     Scoreboard = playerDictionary[endpoint][date].ToArray()
                 });
             }

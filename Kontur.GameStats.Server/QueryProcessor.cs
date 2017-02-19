@@ -9,7 +9,7 @@ using System.Data.SQLite;
 
 namespace Kontur.GameStats.Server
 {
-    public class QueryProcessor : StatServer.IStatServerRequestHandler
+    public class QueryProcessor : IStatServerRequestHandler
     {
         private readonly GameStatistic statistic = new GameStatistic();
 
@@ -175,10 +175,10 @@ namespace Kontur.GameStats.Server
             return JsonConvert.SerializeObject(obj);
         }
 
-        StatServer.RequestHandlingResult StatServer.IStatServerRequestHandler.HandleGet(Uri uri)
+        public RequestHandlingResult HandleGet(Uri uri)
         {
             var requestAnswer = ProcessGetRequest(uri.LocalPath);
-            var result = new StatServer.RequestHandlingResult();
+            var result = new RequestHandlingResult();
             switch (requestAnswer)
             {
                 case "Bad Request":
@@ -195,10 +195,10 @@ namespace Kontur.GameStats.Server
             return result;
         }
 
-        StatServer.RequestHandlingResult StatServer.IStatServerRequestHandler.HandlePut(Uri uri, string body)
+        public RequestHandlingResult HandlePut(Uri uri, string body)
         {
             var requestAnswer = ProcessPutRequest(uri.LocalPath, body);
-            return new StatServer.RequestHandlingResult
+            return new RequestHandlingResult
             {
                 Status = requestAnswer ? HttpStatusCode.Accepted : HttpStatusCode.BadRequest
             };

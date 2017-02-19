@@ -17,20 +17,9 @@ namespace Kontur.GameStats.Server
 
         private readonly IStatServerRequestHandler handler;
 
-        internal class RequestHandlingResult
-        {
-            public byte[] Response { get; set; }
-            public HttpStatusCode Status { get; set; }
-        }
-
-        internal interface IStatServerRequestHandler
-        {
-            RequestHandlingResult HandleGet(Uri uri);
-            RequestHandlingResult HandlePut(Uri uri, string body);
-        }
-
         public StatServer(IStatServerRequestHandler handler)
         {
+            this.handler = handler;
             listener = new HttpListener();
         }
 
