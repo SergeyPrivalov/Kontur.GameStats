@@ -14,6 +14,33 @@ namespace Kontur.GameStats.Server
 
         private readonly ServerDataBase dataBase;
 
+        private static readonly Regex PutRequestRegex =
+            new Regex("/(servers)/" +
+                      "([\\.a-zA-Z0-9]+-[0-9]{1,4})/" +
+                      "(info|matches)/?" +
+                      "([0-9]{4}-[0-9]{2}-[0-9]{2}T" +
+                      "[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?", RegexOptions.Compiled);
+
+        private static readonly Regex GetRequestRegex = 
+            new Regex("/(servers|players|reports)/", RegexOptions.Compiled);
+
+        private static readonly Regex ServerInfoRegex =
+            new Regex("([\\.a-zA-Z0-9]+-?[0-9]{1,4}|info)/?" +
+                      "(info|matches|stats)?/?" +
+                      "([0-9]{4}-[0-9]{2}-[0-9]{2}T" +
+                      "[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?", RegexOptions.Compiled);
+
+        private static readonly Regex InfoBodyRegex =
+            new Regex("{\"name\": \"[.]+\"," +"\"gameModes\": [.]+}", RegexOptions.Compiled);
+
+        private static readonly Regex MatchBodyRegex =
+            new Regex("{\"map\": \"[\\.]+\"," +
+                      "\"gameMode\": \"[A-Z]+\"," +
+                      "\"fragLimit\": [0-9]+," +
+                      "\"timeLimit\": [0-9]+," +
+                      "\"timeElapsed\": [0-9]+.[0-9]+," +
+                      "\"scoreboard\": [\\.]+}", RegexOptions.Compiled);
+
         public QueryProcessor()
         {
             dataBase = new ServerDataBase();
@@ -31,38 +58,29 @@ namespace Kontur.GameStats.Server
             switch (requestAnswer)
             {
                 case "Bad Request":
-                    result.Status = HttpStatusCode.BadRequest;
-                    break;
+                    return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
                 case "Not Found":
-                    result.Status = HttpStatusCode.NotFound;
-                    break;
+                    return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
                 default:
-                    result.Status = HttpStatusCode.Accepted;
-                    result.Response = Encoding.ASCII.GetBytes(requestAnswer);
-                    break;
+                    return RequestHandlingResult.Successfull(Encoding.ASCII.GetBytes(requestAnswer));
             }
-            return result;
         }
 
         public RequestHandlingResult HandlePut(Uri uri, string body)
         {
             var requestAnswer = ProcessPutRequest(uri.LocalPath, body);
-            return new RequestHandlingResult
-            {
-                Status = requestAnswer ? HttpStatusCode.Accepted : HttpStatusCode.BadRequest
-            };
+            return requestAnswer
+                ? RequestHandlingResult.Successfull(new byte[0])
+                : RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
         }
 
         public bool ProcessPutRequest(string requestString, string body)
         {
-            const string pattern = "/(servers)/" +
-                                   "([\\.a-zA-Z0-9]+-[0-9]{1,4})/" +
-                                   "(info|matches)/?" +
-                                   "([0-9]{4}-[0-9]{2}-[0-9]{2}T" +
-                                   "[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?";
-            var splitedString = Regex.Split(requestString, pattern);
+            var splitedString = PutRequestRegex.Split(requestString);
 
-            if (splitedString.Length <= 3) return false;
+            if (splitedString.Length <= 3)// ||
+                //!InfoBodyRegex.IsMatch(body) || !MatchBodyRegex.IsMatch(body))
+                return false;
 
             switch (splitedString[3])
             {
@@ -101,8 +119,7 @@ namespace Kontur.GameStats.Server
 
         public string ProcessGetRequest(string requestString)
         {
-            const string pattern = "/(servers|players|reports)/";
-            var splitedRequest = Regex.Split(requestString, pattern);
+            var splitedRequest = GetRequestRegex.Split(requestString);
 
             if (splitedRequest.Length < 2) return "Bad Request";
 
@@ -155,12 +172,7 @@ namespace Kontur.GameStats.Server
 
         private string GetServerInformation(string request)
         {
-            var pattern = "([\\.a-zA-Z0-9]+-?[0-9]{1,4}|info)/?" +
-                          "(info|matches|stats)?/?" +
-                          "([0-9]{4}-[0-9]{2}-[0-9]{2}T" +
-                          "[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?";
-
-            var splitedRequest = Regex.Split(request, pattern);
+            var splitedRequest = ServerInfoRegex.Split(request);
             if (splitedRequest[1] == "info") return Json(AdvertiseServers.ToArray());
             switch (splitedRequest[2])
             {
