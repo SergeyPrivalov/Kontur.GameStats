@@ -59,13 +59,17 @@ namespace Kontur.GameStats.Server
         {
             var advertServers = connection.Table<AdvertiseQueryServer>();
             var gameModes = connection.Table<GameMode>();
+            var adServer = new AdvertiseQueryServer();
+            adServer.Info = new Information();
             foreach (var advertServer in advertServers)
             {
-                var adServer = advertServer;
+                adServer.Endpoint = advertServer.Endpoint;
+                adServer.Name = advertServer.Name;
                 adServer.Info.Name = advertServer.Name;
+                adServer.Info.Endpoint = advertServer.Endpoint;
                 adServer.Info.GameModes = gameModes
-                    .Where(x => x.Endpoint == advertServer.Endpoint)
-                    .Select(x => x.Mode).ToArray();
+                        .Where(x => x.Endpoint == advertServer.Endpoint)
+                        .Select(x => x.Mode).ToArray();
                 QueryProcessor.AdvertiseServers.Add(adServer);
             }
         }

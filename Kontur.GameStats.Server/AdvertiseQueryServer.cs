@@ -8,6 +8,8 @@ namespace Kontur.GameStats.Server
     {
         public AdvertiseQueryServer()
         {
+            Info = new Information();
+            Info.GameModes = new string[0];
         }
 
         public AdvertiseQueryServer(string endpoint, Information info)
@@ -44,6 +46,10 @@ namespace Kontur.GameStats.Server
 
     public class Information
     {
+        public Information()
+        {
+            GameModes = new string[0];
+        }
         [JsonIgnore]
         public string Endpoint { get; set; }
 

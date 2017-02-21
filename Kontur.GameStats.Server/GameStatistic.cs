@@ -28,8 +28,7 @@ namespace Kontur.GameStats.Server
             return Math.Round(x / y, 6);
         }
 
-        private string[] GetTopN(int n,
-            IEnumerable<IGrouping<string, GameServer>> game)
+        private string[] GetTopN(int n, IEnumerable<IGrouping<string, GameServer>> game)
         {
             return game.OrderByDescending(x => x.Count())
                 .Select(x => x.Key).Take(n).ToArray();
@@ -44,6 +43,7 @@ namespace Kontur.GameStats.Server
         {
             var games = QueryProcessor.GameServers
                 .Where(x => x.Scoreboard.Any(y => y.Name == name)).ToArray();
+
             var groupByEndpoint = games.GroupBy(x => x.Endpoint).ToArray();
             var groupByDate = GroupByDate(games);
             return new PlayerStats
