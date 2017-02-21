@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 
 namespace Kontur.GameStats.Server
 {
@@ -43,7 +44,6 @@ namespace Kontur.GameStats.Server
         {
             var games = QueryProcessor.GameServers
                 .Where(x => x.Scoreboard.Any(y => y.Name == name)).ToArray();
-
             var groupByEndpoint = games.GroupBy(x => x.Endpoint).ToArray();
             var groupByDate = GroupByDate(games);
             return new PlayerStats

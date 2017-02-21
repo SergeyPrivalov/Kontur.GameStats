@@ -10,10 +10,6 @@ namespace Kontur.GameStats.Server
 {
     public class QueryProcessor : IStatServerRequestHandler
     {
-        private readonly GameStatistic statistic = new GameStatistic();
-
-        private readonly ServerDataBase dataBase;
-
         private static readonly Regex PutRequestRegex =
             new Regex("/(servers)/" +
                       "([\\.a-zA-Z0-9]+-[0-9]{1,4})/" +
@@ -21,7 +17,7 @@ namespace Kontur.GameStats.Server
                       "([0-9]{4}-[0-9]{2}-[0-9]{2}T" +
                       "[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?", RegexOptions.Compiled);
 
-        private static readonly Regex GetRequestRegex = 
+        private static readonly Regex GetRequestRegex =
             new Regex("/(servers|players|reports)/", RegexOptions.Compiled);
 
         private static readonly Regex ServerInfoRegex =
@@ -31,7 +27,7 @@ namespace Kontur.GameStats.Server
                       "[0-9]{2}:[0-9]{2}:[0-9]{2}Z)?", RegexOptions.Compiled);
 
         private static readonly Regex InfoBodyRegex =
-            new Regex("{\"name\": \"[.]+\"," +"\"gameModes\": [.]+}", RegexOptions.Compiled);
+            new Regex("{\"name\": \"[.]+\"," + "\"gameModes\": [.]+}", RegexOptions.Compiled);
 
         private static readonly Regex MatchBodyRegex =
             new Regex("{\"map\": \"[\\.]+\"," +
@@ -40,6 +36,9 @@ namespace Kontur.GameStats.Server
                       "\"timeLimit\": [0-9]+," +
                       "\"timeElapsed\": [0-9]+.[0-9]+," +
                       "\"scoreboard\": [\\.]+}", RegexOptions.Compiled);
+
+        private readonly ServerDataBase dataBase;
+        private readonly GameStatistic statistic = new GameStatistic();
 
         public QueryProcessor()
         {
@@ -53,34 +52,21 @@ namespace Kontur.GameStats.Server
 
         public RequestHandlingResult HandleGet(Uri uri)
         {
-            var requestAnswer = ProcessGetRequest(uri.LocalPath);
-            var result = new RequestHandlingResult();
-            switch (requestAnswer)
-            {
-                case "Bad Request":
-                    return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
-                case "Not Found":
-                    return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
-                default:
-                    return RequestHandlingResult.Successfull(Encoding.ASCII.GetBytes(requestAnswer));
-            }
+            return ProcessGetRequest(uri.LocalPath);
         }
 
         public RequestHandlingResult HandlePut(Uri uri, string body)
         {
-            var requestAnswer = ProcessPutRequest(uri.LocalPath, body);
-            return requestAnswer
-                ? RequestHandlingResult.Successfull(new byte[0])
-                : RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
+            return ProcessPutRequest(uri.LocalPath, body);
         }
 
-        public bool ProcessPutRequest(string requestString, string body)
+        private RequestHandlingResult ProcessPutRequest(string requestString, string body)
         {
             var splitedString = PutRequestRegex.Split(requestString);
 
-            if (splitedString.Length <= 3)// ||
+            if (splitedString.Length <= 3) // ||
                 //!InfoBodyRegex.IsMatch(body) || !MatchBodyRegex.IsMatch(body))
-                return false;
+                return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
 
             switch (splitedString[3])
             {
@@ -89,11 +75,11 @@ namespace Kontur.GameStats.Server
                 case "matches":
                     return PutMatches(splitedString[2], body, splitedString[4]);
                 default:
-                    return false;
+                    return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
         }
 
-        private bool PutInfo(string endpoint, string body)
+        private RequestHandlingResult PutInfo(string endpoint, string body)
         {
             var info = JsonConvert.DeserializeObject<Information>(body);
             var advertRequest = new AdvertiseQueryServer(endpoint, info);
@@ -103,25 +89,26 @@ namespace Kontur.GameStats.Server
             else
                 AdvertiseServers.Add(advertRequest);
             dataBase.AddAdvertServer(advertRequest);
-            return true;
+            return RequestHandlingResult.Successfull(new byte[0]);
         }
 
-        private bool PutMatches(string endpoint, string body, string date)
+        private RequestHandlingResult PutMatches(string endpoint, string body, string date)
         {
-            if (AdvertiseServers.All(x => x.Endpoint != endpoint)) return false;
+            if (AdvertiseServers.All(x => x.Endpoint != endpoint))
+                return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             var gameServer = JsonConvert.DeserializeObject<GameServer>(body);
             gameServer.Endpoint = endpoint;
             gameServer.DateAndTime = DateTime.Parse(date);
             GameServers.Add(gameServer);
             dataBase.AddGameServer(gameServer);
-            return true;
+            return RequestHandlingResult.Successfull(new byte[0]);
         }
 
-        public string ProcessGetRequest(string requestString)
+        private RequestHandlingResult ProcessGetRequest(string requestString)
         {
             var splitedRequest = GetRequestRegex.Split(requestString);
 
-            if (splitedRequest.Length < 2) return "Bad Request";
+            if (splitedRequest.Length < 2) return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
 
             switch (splitedRequest[1])
             {
@@ -132,35 +119,40 @@ namespace Kontur.GameStats.Server
                 case "reports":
                     return GetReport(splitedRequest[2]);
                 default:
-                    return "Bad Request";
+                    return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
         }
 
-        private string GetPlayersStatistic(string request)
+        private RequestHandlingResult GetPlayersStatistic(string request)
         {
             var splitRequest = request.Split('/');
-            return Json(statistic.GetPlayerStatistic(splitRequest[0].ToLower()));
+            var name = splitRequest[0];
+            return GameServers.Any(x => x.Scoreboard.Any(y => y.Name == name))
+                ? RequestHandlingResult.Successfull(GetBytes(Json(statistic.GetPlayerStatistic(splitRequest[0].ToLower()))))
+                : RequestHandlingResult.Fail(HttpStatusCode.NotFound);
         }
 
-        private string GetReport(string request)
+        private RequestHandlingResult GetReport(string request)
         {
             const string pattern = "^(recent-matches|best-players|popular-servers)/?";
             var splitRequest = Regex.Split(request, pattern)
                 .Where(x => x != "")
                 .ToArray();
             var n = 5;
-            if (splitRequest.Length > 1) n = DefineN(int.Parse(splitRequest[1]));
-            if (n == 0) return Json(new string[] {});
+            if (splitRequest.Length > 1)
+                n = DefineN(int.Parse(splitRequest[1]));
+            if (n == 0 || GameServers.Count == 0)
+                return RequestHandlingResult.Successfull(GetBytes(Json(new string[] {})));
             switch (splitRequest[0])
             {
                 case "recent-matches":
-                    return Json(statistic.GetRecentMatches(n));
+                    return RequestHandlingResult.Successfull(GetBytes(Json(statistic.GetRecentMatches(n))));
                 case "best-players":
-                    return Json(statistic.GetBestPlayers(n));
+                    return RequestHandlingResult.Successfull(GetBytes(Json(statistic.GetBestPlayers(n))));
                 case "popular-servers":
-                    return Json(statistic.GetPopularServers(n));
+                    return RequestHandlingResult.Successfull(GetBytes(Json(statistic.GetPopularServers(n))));
                 default:
-                    return "Bad Request";
+                    return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
         }
 
@@ -170,48 +162,59 @@ namespace Kontur.GameStats.Server
             return n >= 50 ? 50 : n;
         }
 
-        private string GetServerInformation(string request)
+        private RequestHandlingResult GetServerInformation(string request)
         {
             var splitedRequest = ServerInfoRegex.Split(request);
-            if (splitedRequest[1] == "info") return Json(AdvertiseServers.ToArray());
+            if (splitedRequest[1] == "info")
+                return RequestHandlingResult.Successfull(GetBytes(Json(AdvertiseServers.ToArray())));
+            var endpoint = splitedRequest[1];
+            if (AdvertiseServers.All(x => x.Endpoint != endpoint) &&
+                GameServers.All(x => x.Endpoint != endpoint))
+                return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             switch (splitedRequest[2])
             {
                 case "info":
-                    return GetAdvertServer(splitedRequest[1]);
+                    return RequestHandlingResult.Successfull(GetBytes(GetAdvertServer(endpoint)));
                 case "matches":
-                {
                     var dateAndTime = DateTime.Parse(splitedRequest[3]);
-                    return GetAdvertMatch(splitedRequest[1], dateAndTime);
-                }
+                    return GetAdvertMatch(endpoint, dateAndTime);
                 case "stats":
-                    return Json(statistic.GetServerStatistic(splitedRequest[1]));
+                    return RequestHandlingResult.Successfull(GetBytes(Json(statistic.GetServerStatistic(endpoint))));
                 default:
-                    return "Bad Request";
+                    return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
         }
 
         private string GetAdvertServer(string enpoint)
         {
-            if (AdvertiseServers.All(x => x.Endpoint != enpoint)) return "Not Found";
             return Json(AdvertiseServers
                 .Where(x => x.Endpoint == enpoint)
                 .Select(x => x.Info)
                 .ToArray()[0]);
         }
 
-        private string GetAdvertMatch(string endpoint, DateTime date)
+        private RequestHandlingResult GetAdvertMatch(string endpoint, DateTime date)
         {
-            if (GameServers.All(x => x.Endpoint != endpoint)
-                || GameServers.All(x => x.DateAndTime != date))
-                return "Not Found";
-            return Json(GameServers
+            if (GameServers.All(x => x.DateAndTime != date))
+                return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
+            return RequestHandlingResult.Successfull(GetBytes(Json(GameServers
                 .Where(x => x.Endpoint == endpoint)
-                .Where(x => x.DateAndTime == date).ToArray()[0]);
+                .Where(x => x.DateAndTime == date).ToArray()[0])));
         }
 
         public string Json(object obj)
         {
             return JsonConvert.SerializeObject(obj);
+        }
+
+        public byte[] GetBytes(string str)
+        {
+            return Encoding.ASCII.GetBytes(str);
+        }
+
+        public string GetStringFromByteArray(byte[] bytes)
+        {
+            return Encoding.UTF8.GetString(bytes);
         }
     }
 }

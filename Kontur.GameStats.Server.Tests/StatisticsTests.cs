@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Kontur.GameStats.Server.Tests
@@ -65,9 +66,10 @@ namespace Kontur.GameStats.Server.Tests
                          "\"top5Maps\":[\"DM-HelloWorld\",\"DM\",\"DM-Hello\"]}";
 
             var result = queryProcessor
-                .ProcessGetRequest("/servers/12.12.12.12-1333/stats");
+                .HandleGet(new Uri("http://localhost:8080/servers/12.12.12.12-1333/stats"));
 
-            Assert.AreEqual(answer, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
@@ -84,9 +86,10 @@ namespace Kontur.GameStats.Server.Tests
                                "\"lastMatchPlayed\":\"2020-1-23T14:0:0Z\"," +
                                "\"killToDeathRatio\":1.62963}";
 
-            var result = queryProcessor.ProcessGetRequest("/players/player20/stats");
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/players/player20/stats"));
 
-            Assert.AreEqual(answerString, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(answerString, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
@@ -104,9 +107,10 @@ namespace Kontur.GameStats.Server.Tests
                     })
                 .ToArray());
 
-            var result = queryProcessor.ProcessGetRequest("/reports/recent-matches/10");
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/10"));
 
-            Assert.AreEqual(answer, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
@@ -124,9 +128,10 @@ namespace Kontur.GameStats.Server.Tests
                     })
                 .ToArray());
 
-            var result = queryProcessor.ProcessGetRequest("/reports/recent-matches");
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches"));
 
-            Assert.AreEqual(answer, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
@@ -144,9 +149,10 @@ namespace Kontur.GameStats.Server.Tests
                     })
                 .ToArray());
 
-            var result = queryProcessor.ProcessGetRequest("/reports/recent-matches/100");
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/100"));
 
-            Assert.AreEqual(answer, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
@@ -154,36 +160,31 @@ namespace Kontur.GameStats.Server.Tests
         {
             var answer = "[]";
 
-            var result = queryProcessor.ProcessGetRequest("/reports/recent-matches/-5");
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/-5"));
 
-            Assert.AreEqual(answer, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
         public void GetPopularServer()
         {
             var answer = queryProcessor.Json(QueryProcessor.AdvertiseServers
-                .Select(x => new PopularServer { 
+                .Select(x => new PopularServer
+                {
                     Enpoint = x.Endpoint,
                     Name = x.Info.Name,
-                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Endpoint)})
+                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Endpoint)
+                })
                 .OrderByDescending(x => x.AverageMatchPerDay)
                 .Take(15)
                 .ToArray());
 
-            var result = queryProcessor.ProcessGetRequest("/reports/popular-servers/15");
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/popular-servers/15"));
 
-            Assert.AreEqual(answer, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
         }
-
-
-        //[TestMethod]
-        //public void GetBestPlayers()
-        //{
-        //    var endpoint = "7.7.7.7-1000";
-        //    MultiAdd(endpoint,date1,4,gameServer1);
-        //    var answer = QueryProcessor.Json();
-        //}
 
         private static void MultiAdd(string endpoint, DateTime date, int n, GameServer gameServer)
         {

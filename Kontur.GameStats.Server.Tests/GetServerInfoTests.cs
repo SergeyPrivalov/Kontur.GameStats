@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 
@@ -31,44 +32,43 @@ namespace Kontur.GameStats.Server.Tests
                     GameModes = new[] {"DM"}
                 });
 
+        private readonly QueryProcessor queryProcessor = new QueryProcessor();
+
 
         [TestMethod]
         public void GetServerInfo()
         {
             QueryProcessor.AdvertiseServers.Add(firstServer);
             QueryProcessor.AdvertiseServers.Add(secondServer);
-            var queryProcessor = new QueryProcessor();
             var info = queryProcessor.Json(QueryProcessor.AdvertiseServers.ToArray());
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/info"));
 
-            var result = queryProcessor.ProcessGetRequest("/servers/info");
-
-            Assert.AreEqual(2, QueryProcessor.AdvertiseServers.Count);
-            Assert.AreEqual(info, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(info, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
         public void GetAdvertInfo()
         {
-            const string info = "{\"name\":\"] My P3rfect Server [\"," +
-                                "\"gameModes\":[\"DM\",\"TDM\"]}";
-            var queryProcessor = new QueryProcessor();
+            var info = "{\"name\":\"] My P3rfect Server [\"," +
+                       "\"gameModes\":[\"DM\",\"TDM\"]}";
+            var uri = new Uri("http://localhost:8080/servers/167.42.23.32-1337/info");
+            queryProcessor.HandlePut(uri, info);
 
-            var result =
-                queryProcessor.ProcessGetRequest("/servers/167.42.23.32-1337/info");
+            var result = queryProcessor.HandleGet(uri);
 
-            Assert.AreEqual(info, result);
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(info, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
         public void GetNotAdvertInfo()
         {
-            const string info = "Not Found";
-            var queryProcessor = new QueryProcessor();
-
             var result =
-                queryProcessor.ProcessGetRequest("/servers/17.42.3.3-1337/info");
+                queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/17.42.3.3-1337/info"));
 
-            Assert.AreEqual(info, result);
+            Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
+            Assert.AreEqual("", queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
@@ -79,25 +79,23 @@ namespace Kontur.GameStats.Server.Tests
             gameServer.DateAndTime = new DateTime(2017, 11, 22, 20, 17, 00);
             QueryProcessor.GameServers.Add(gameServer);
             var info = JsonConvert.SerializeObject(gameServer);
-            var queryProcessor = new QueryProcessor();
 
-            var result = queryProcessor.
-                ProcessGetRequest("/servers/167.42.23.32-1337/matches/" +
-                                  "2017-11-22T15:17:00Z");
 
-            Assert.AreEqual(info, result);
+            var result = queryProcessor.HandleGet(
+                new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-11-22T15:17:00Z"));
+
+            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            Assert.AreEqual(info, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
         [TestMethod]
         public void GetNoAdvertMatchInfo()
         {
-            var info = "Not Found";
-            var queryProcessor = new QueryProcessor();
+            var result = queryProcessor.HandleGet(
+                new Uri("http://localhost:8080/servers/1.2.2.8-1337/matches/2017-01-22T15:17:00Z"));
 
-            var result =
-                queryProcessor.ProcessGetRequest("/servers/1.2.2.8-1337/matches/2017-01-22T15:17:00Z");
-
-            Assert.AreEqual(info, result);
+            Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
+            Assert.AreEqual("", queryProcessor.GetStringFromByteArray(result.Response));
         }
     }
 }
