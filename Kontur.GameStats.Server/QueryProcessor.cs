@@ -127,9 +127,11 @@ namespace Kontur.GameStats.Server
         {
             var splitRequest = request.Split('/');
             var name = splitRequest[0];
-            return GameServers.Any(x => x.Scoreboard.Any(y => y.Name == name))
-                ? RequestHandlingResult.Successfull(GetBytes(Json(statistic.GetPlayerStatistic(splitRequest[0].ToLower()))))
-                : RequestHandlingResult.Fail(HttpStatusCode.NotFound);
+            if (GameServers.SelectMany(x => x.Scoreboard).Any(y => y.Name == name))
+                return
+                    RequestHandlingResult.Successfull(
+                        GetBytes(Json(statistic.GetPlayerStatistic(splitRequest[0].ToLower()))));
+            return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
         }
 
         private RequestHandlingResult GetReport(string request)

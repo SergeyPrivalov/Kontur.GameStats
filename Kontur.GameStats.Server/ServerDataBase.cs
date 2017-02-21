@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using SQLite;
 
 namespace Kontur.GameStats.Server
@@ -59,18 +60,26 @@ namespace Kontur.GameStats.Server
         {
             var advertServers = connection.Table<AdvertiseQueryServer>();
             var gameModes = connection.Table<GameMode>();
-            var adServer = new AdvertiseQueryServer();
-            adServer.Info = new Information();
+            var modeDictionary = new Dictionary<string, List<string>>();
+            foreach (var gameMode in gameModes)
+            {
+                if (!modeDictionary.ContainsKey(gameMode.Endpoint))
+                    modeDictionary.Add(gameMode.Endpoint, new List<string>());
+                modeDictionary[gameMode.Endpoint].Add(gameMode.Mode);
+            }
             foreach (var advertServer in advertServers)
             {
-                adServer.Endpoint = advertServer.Endpoint;
-                adServer.Name = advertServer.Name;
-                adServer.Info.Name = advertServer.Name;
-                adServer.Info.Endpoint = advertServer.Endpoint;
-                adServer.Info.GameModes = gameModes
-                        .Where(x => x.Endpoint == advertServer.Endpoint)
-                        .Select(x => x.Mode).ToArray();
-                QueryProcessor.AdvertiseServers.Add(adServer);
+                QueryProcessor.AdvertiseServers.Add(new AdvertiseQueryServer
+                {
+                    Endpoint = advertServer.Endpoint,
+                    Name = advertServer.Name,
+                    Info = new Information
+                    {
+                        Endpoint = advertServer.Endpoint,
+                        Name = advertServer.Name,
+                        GameModes = modeDictionary[advertServer.Endpoint].ToArray()
+            }
+                });
             }
         }
 
