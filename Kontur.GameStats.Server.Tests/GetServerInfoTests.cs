@@ -33,6 +33,8 @@ namespace Kontur.GameStats.Server.Tests
                 });
 
         private readonly QueryProcessor queryProcessor = new QueryProcessor();
+        private JsonSerializer jsonSerializer = new JsonSerializer();
+
 
 
         [TestMethod]
@@ -40,7 +42,7 @@ namespace Kontur.GameStats.Server.Tests
         {
             QueryProcessor.AdvertiseServers.Add(firstServer);
             QueryProcessor.AdvertiseServers.Add(secondServer);
-            var info = queryProcessor.Json(QueryProcessor.AdvertiseServers.ToArray());
+            var info = jsonSerializer.Serialize(QueryProcessor.AdvertiseServers.ToArray());
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/info"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);

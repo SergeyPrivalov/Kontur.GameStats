@@ -48,6 +48,7 @@ namespace Kontur.GameStats.Server.Tests
 
         private readonly QueryProcessor queryProcessor = new QueryProcessor();
         private readonly GameStatistic statistic = new GameStatistic();
+        private JsonSerializer jsonSerializer = new JsonSerializer();
 
         [TestMethod]
         public void GetServersStats()
@@ -95,7 +96,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetRecentMatches()
         {
-            var answer = queryProcessor.Json(QueryProcessor.GameServers
+            var answer = jsonSerializer.Serialize(QueryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(10)
                 .Select(x =>
@@ -116,7 +117,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetRecentMatchesWithoutCount()
         {
-            var answer = queryProcessor.Json(QueryProcessor.GameServers
+            var answer = jsonSerializer.Serialize(QueryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(5)
                 .Select(x =>
@@ -137,7 +138,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetRecentMatchesMoreThan50()
         {
-            var answer = queryProcessor.Json(QueryProcessor.GameServers
+            var answer = jsonSerializer.Serialize(QueryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(50)
                 .Select(x =>
@@ -169,7 +170,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetPopularServer()
         {
-            var answer = queryProcessor.Json(QueryProcessor.AdvertiseServers
+            var answer = jsonSerializer.Serialize(QueryProcessor.AdvertiseServers
                 .Select(x => new PopularServer
                 {
                     Enpoint = x.Endpoint,

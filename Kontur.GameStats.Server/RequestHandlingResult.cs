@@ -2,10 +2,10 @@
 
 namespace Kontur.GameStats.Server
 {
-    public class RequestHandlingResult
+    public struct RequestHandlingResult
     {
-        public byte[] Response { get; set; }
-        public HttpStatusCode Status { get; set; }
+        public byte[] Response { get; private set; }
+        public HttpStatusCode Status { get; private set; }
 
         public static RequestHandlingResult Successfull(byte[] response)
         {

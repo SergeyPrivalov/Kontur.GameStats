@@ -49,6 +49,17 @@ namespace Kontur.GameStats.Server
                 });
         }
 
+        public void UpdateAdvertServer(AdvertiseQueryServer advertiseQueryServer)
+        {
+            var connection = new SQLiteConnection($"{baseName}", true);
+            connection.BeginTransaction();
+            connection.CreateCommand(
+                $"DELETE FROM AdvertiseQueryServer WHERE endpoint = {advertiseQueryServer.Endpoint}; " +
+                $"DELETE FROM GameModes WHERE endpoint = {advertiseQueryServer.Endpoint}");
+            connection.Commit();
+            AddAdvertServer(advertiseQueryServer);
+        }
+
         public void GetAllData()
         {
             var connection = new SQLiteConnection($"{baseName}", true);

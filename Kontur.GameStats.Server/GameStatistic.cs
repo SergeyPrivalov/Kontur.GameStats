@@ -43,7 +43,8 @@ namespace Kontur.GameStats.Server
         public PlayerStats GetPlayerStatistic(string name)
         {
             var games = QueryProcessor.GameServers
-                .Where(x => x.Scoreboard.Any(y => y.Name == name)).ToArray();
+                .Where(x => x.Scoreboard.Any(y => y.Name == name))
+                .ToArray();
             var groupByEndpoint = games.GroupBy(x => x.Endpoint).ToArray();
             var groupByDate = GroupByDate(games);
             return new PlayerStats
