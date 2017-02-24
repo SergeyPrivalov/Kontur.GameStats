@@ -152,7 +152,7 @@ namespace Kontur.GameStats.Server
         {
             var splitRequest = request.Split('/');
             var name = splitRequest[0].ToLower();
-            if (GameServers.SelectMany(x => x.Scoreboard).All(y => !string.Equals(y.Name, name, StringComparison.CurrentCultureIgnoreCase)))
+            if (GameServers.SelectMany(x => x.Scoreboard).All(y => y.Name.ToLower() != name))
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             return RequestHandlingResult.Successfull(
                         GetBytes(jsonSerializer.Serialize(statistic.GetPlayerStatistic(name))));

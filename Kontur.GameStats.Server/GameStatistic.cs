@@ -11,7 +11,7 @@ namespace Kontur.GameStats.Server
         {
             var games = QueryProcessor.GameServers
                 .Where(x => x.Endpoint == endpoint).ToArray();
-            var groupByDate = GroupByDate(games);
+            var groupByDate = games.GroupBy(x => x.Date).ToArray();
             return new ServerStats
             {
                 TotalMatchesPlaed = games.Length,
@@ -35,22 +35,16 @@ namespace Kontur.GameStats.Server
                 .Select(x => x.Key).Take(n).ToArray();
         }
 
-        private IGrouping<DateTime, GameServer>[] GroupByDate(IEnumerable<GameServer> gameServers)
-        {
-            return gameServers.GroupBy(x => x.Date).ToArray();
-        }
-
         public PlayerStats GetPlayerStatistic(string name)
         {
             var games = QueryProcessor.GameServers
-                .Where(x => x.Scoreboard.Any(y => string.Equals(y.Name, name, StringComparison.CurrentCultureIgnoreCase)))
-                .ToArray();
+                .Where(x => x.Scoreboard.Any(y => y.Name.ToLower() == name)).ToArray();
             var groupByEndpoint = games.GroupBy(x => x.Endpoint).ToArray();
-            var groupByDate = GroupByDate(games);
+            var groupByDate = games.GroupBy(x => x.Date).ToArray();
             return new PlayerStats
             {
                 TotalMatchesPlayed = games.Length,
-                TotalMatchesWon = games.Count(x => x.Scoreboard[0].Name == name),
+                TotalMatchesWon = games.Count(x => x.Scoreboard[0].Name.ToLower() == name),
                 FavoriteServer = GetTopN(1, groupByEndpoint)[0],
                 UniqueServers = groupByEndpoint.Count(),
                 FavoriteGameMode = GetTopN(1, games.GroupBy(x => x.GameMode))[0],
@@ -65,7 +59,7 @@ namespace Kontur.GameStats.Server
         private Player[] GetPlayerStats(IEnumerable<GameServer> gameServers, string name)
         {
             return gameServers
-                .SelectMany(x => x.Scoreboard.Where(y => y.Name == name))
+                .SelectMany(x => x.Scoreboard.Where(y => y.Name.ToLower() == name))
                 .ToArray();
         }
 
@@ -81,7 +75,7 @@ namespace Kontur.GameStats.Server
             {
                 var scoreboardLength = gameServers[j].Scoreboard.Length;
                 for (var i = 0; i < scoreboardLength; ++i)
-                    if (gameServers[j].Scoreboard[i].Name == name)
+                    if (gameServers[j].Scoreboard[i].Name.ToLower() == name)
                         averageScoreboard[j] = (double)(scoreboardLength - (i + 1))
                                                / (scoreboardLength - 1) * 100;
             }
