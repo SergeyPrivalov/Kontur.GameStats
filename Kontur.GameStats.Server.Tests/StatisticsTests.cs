@@ -48,7 +48,7 @@ namespace Kontur.GameStats.Server.Tests
 
         private readonly QueryProcessor queryProcessor = new QueryProcessor();
         private readonly GameStatistic statistic = new GameStatistic();
-        private JsonSerializer jsonSerializer = new JsonSerializer();
+        private readonly JsonSerializer jsonSerializer = new JsonSerializer();
 
         [TestMethod]
         public void GetServersStats()

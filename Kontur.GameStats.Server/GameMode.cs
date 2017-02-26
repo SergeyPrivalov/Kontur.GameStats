@@ -3,7 +3,7 @@
 namespace Kontur.GameStats.Server
 {
     [Table("GameModes")]
-    class GameMode
+    internal class GameMode
     {
         [Column("endpoint")]
         public string Endpoint { get; set; }

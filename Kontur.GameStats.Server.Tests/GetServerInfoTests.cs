@@ -24,6 +24,8 @@ namespace Kontur.GameStats.Server.Tests
                     new Player("Player2", 2, 2, 21)
                 });
 
+        private readonly QueryProcessor queryProcessor = new QueryProcessor();
+
         private readonly AdvertiseQueryServer secondServer =
             new AdvertiseQueryServer("62.210.26.88-1337",
                 new Information
@@ -32,9 +34,7 @@ namespace Kontur.GameStats.Server.Tests
                     GameModes = new[] {"DM"}
                 });
 
-        private readonly QueryProcessor queryProcessor = new QueryProcessor();
-        private JsonSerializer jsonSerializer = new JsonSerializer();
-
+        private readonly JsonSerializer jsonSerializer = new JsonSerializer();
 
 
         [TestMethod]

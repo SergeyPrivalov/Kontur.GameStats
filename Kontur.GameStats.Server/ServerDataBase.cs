@@ -79,7 +79,6 @@ namespace Kontur.GameStats.Server
                 modeDictionary[gameMode.Endpoint].Add(gameMode.Mode);
             }
             foreach (var advertServer in advertServers)
-            {
                 QueryProcessor.AdvertiseServers.Add(new AdvertiseQueryServer
                 {
                     Endpoint = advertServer.Endpoint,
@@ -89,9 +88,8 @@ namespace Kontur.GameStats.Server
                         Endpoint = advertServer.Endpoint,
                         Name = advertServer.Name,
                         GameModes = modeDictionary[advertServer.Endpoint].ToArray()
-            }
+                    }
                 });
-            }
         }
 
         private void ReadGameServers(SQLiteConnection connection)

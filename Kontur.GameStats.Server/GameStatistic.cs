@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 
 namespace Kontur.GameStats.Server
 {
     public class GameStatistic
     {
-        public ServerStats GetServerStatistic(string endpoint)
+        public ServerStats GetServerStatistic(GameServer[] games)
         {
-            var games = QueryProcessor.GameServers
-                .Where(x => x.Endpoint == endpoint).ToArray();
             var groupByDate = games.GroupBy(x => x.Date).ToArray();
             return new ServerStats
             {
@@ -31,14 +28,15 @@ namespace Kontur.GameStats.Server
 
         private string[] GetTopN(int n, IEnumerable<IGrouping<string, GameServer>> game)
         {
-            return game.OrderByDescending(x => x.Count())
-                .Select(x => x.Key).Take(n).ToArray();
+            return game
+                .OrderByDescending(x => x.Count())
+                .Select(x => x.Key)
+                .Take(n)
+                .ToArray();
         }
 
-        public PlayerStats GetPlayerStatistic(string name)
+        public PlayerStats GetPlayerStatistic(string name, GameServer[] games)
         {
-            var games = QueryProcessor.GameServers
-                .Where(x => x.Scoreboard.Any(y => y.Name.ToLower() == name)).ToArray();
             var groupByEndpoint = games.GroupBy(x => x.Endpoint).ToArray();
             var groupByDate = games.GroupBy(x => x.Date).ToArray();
             return new PlayerStats
@@ -76,7 +74,7 @@ namespace Kontur.GameStats.Server
                 var scoreboardLength = gameServers[j].Scoreboard.Length;
                 for (var i = 0; i < scoreboardLength; ++i)
                     if (gameServers[j].Scoreboard[i].Name.ToLower() == name)
-                        averageScoreboard[j] = (double)(scoreboardLength - (i + 1))
+                        averageScoreboard[j] = (double) (scoreboardLength - (i + 1))
                                                / (scoreboardLength - 1) * 100;
             }
             return Math.Round(averageScoreboard.Average(), 6);

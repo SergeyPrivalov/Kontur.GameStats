@@ -7,8 +7,7 @@ namespace Kontur.GameStats.Server
     [System.ComponentModel.DataAnnotations.Schema.Table("GameServer")]
     public class GameServer
     {
-        [JsonIgnore]
-        private DateTime dateAndTime;
+        [JsonIgnore] private DateTime dateAndTime;
 
         public GameServer()
         {

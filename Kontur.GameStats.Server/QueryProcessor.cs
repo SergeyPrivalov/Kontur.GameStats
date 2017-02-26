@@ -152,10 +152,12 @@ namespace Kontur.GameStats.Server
         {
             var splitRequest = request.Split('/');
             var name = splitRequest[0].ToLower();
-            if (GameServers.SelectMany(x => x.Scoreboard).All(y => y.Name.ToLower() != name))
+            var games = GameServers
+                .Where(x => x.Scoreboard.Any(y => y.Name.ToLower() == name)).ToArray();
+            if (games.Length == 0)
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             return RequestHandlingResult.Successfull(
-                        GetBytes(jsonSerializer.Serialize(statistic.GetPlayerStatistic(name))));
+                GetBytes(jsonSerializer.Serialize(statistic.GetPlayerStatistic(name, games))));
         }
 
         private RequestHandlingResult GetReport(string request)
@@ -176,7 +178,8 @@ namespace Kontur.GameStats.Server
                             GetBytes(jsonSerializer.Serialize(statistic.GetRecentMatches(n))));
                 case "best-players":
                     return
-                        RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(statistic.GetBestPlayers(n))));
+                        RequestHandlingResult.Successfull(
+                            GetBytes(jsonSerializer.Serialize(statistic.GetBestPlayers(n))));
                 case "popular-servers":
                     return
                         RequestHandlingResult.Successfull(
@@ -198,40 +201,38 @@ namespace Kontur.GameStats.Server
             if (splitedRequest[1] == "info")
                 return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(AdvertiseServers.ToArray())));
             var endpoint = splitedRequest[1];
-            if (AdvertiseServers.All(x => x.Endpoint != endpoint) &&
-                GameServers.All(x => x.Endpoint != endpoint))
+            var neededGames = GameServers.Where(x => x.Endpoint == endpoint).ToArray();
+            var neededAdvertServer = AdvertiseServers.Where(x => x.Endpoint == endpoint).ToArray();
+            if (neededAdvertServer.Length == 0 && neededGames.Length == 0)
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             switch (splitedRequest[2])
             {
                 case "info":
-                    return RequestHandlingResult.Successfull(GetBytes(GetAdvertServer(endpoint)));
+                    return RequestHandlingResult.Successfull(GetBytes(GetAdvertServer(neededAdvertServer)));
                 case "matches":
                     var dateAndTime = DateTime.Parse(splitedRequest[3]);
-                    return GetAdvertMatch(endpoint, dateAndTime);
+                    return GetAdvertMatch(dateAndTime, neededGames);
                 case "stats":
                     return
                         RequestHandlingResult.Successfull(
-                            GetBytes(jsonSerializer.Serialize(statistic.GetServerStatistic(endpoint))));
+                            GetBytes(jsonSerializer.Serialize(statistic.GetServerStatistic(neededGames))));
                 default:
                     return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
         }
 
-        private string GetAdvertServer(string enpoint)
+        private string GetAdvertServer(AdvertiseQueryServer[] advertServer)
         {
-            return jsonSerializer.Serialize(AdvertiseServers
-                .Where(x => x.Endpoint == enpoint)
-                .Select(x => x.Info)
-                .ToArray()[0]);
+            return jsonSerializer.Serialize(advertServer[0].Info);
         }
 
-        private RequestHandlingResult GetAdvertMatch(string endpoint, DateTime date)
+        private RequestHandlingResult GetAdvertMatch(DateTime date, GameServer[] games)
         {
             if (GameServers.All(x => x.DateAndTime != date))
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
-            return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(GameServers
-                .Where(x => x.Endpoint == endpoint)
-                .Where(x => x.DateAndTime == date).ToArray()[0])));
+            return
+                RequestHandlingResult.Successfull(
+                    GetBytes(jsonSerializer.Serialize(games.First(x => x.DateAndTime == date))));
         }
 
         private byte[] GetBytes(string str)

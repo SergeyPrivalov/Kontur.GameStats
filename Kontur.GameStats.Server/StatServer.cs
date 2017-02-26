@@ -8,13 +8,12 @@ namespace Kontur.GameStats.Server
 {
     internal class StatServer : IDisposable
     {
+        private readonly IStatServerRequestHandler handler;
         private readonly HttpListener listener;
         private bool disposed;
         private volatile bool isRunning;
 
         private Thread listenerThread;
-
-        private readonly IStatServerRequestHandler handler;
 
         public StatServer(IStatServerRequestHandler handler)
         {
@@ -102,21 +101,21 @@ namespace Kontur.GameStats.Server
         {
             var request = listenerContext.Request;
             var response = listenerContext.Response;
-            response.StatusCode = (int)HttpStatusCode.OK;
+            response.StatusCode = (int) HttpStatusCode.OK;
             var requestHandlingResult = new RequestHandlingResult();
             if (request.HttpMethod == "PUT")
             {
                 var sr = new StreamReader(request.InputStream);
                 requestHandlingResult = handler.HandlePut(request.Url, sr.ReadToEnd());
                 if (requestHandlingResult.Status != HttpStatusCode.Accepted)
-                    response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    response.StatusCode = (int) HttpStatusCode.BadRequest;
                 response.ContentType = "message/http";
             }
             else if (request.HttpMethod == "GET")
             {
                 requestHandlingResult = handler.HandleGet(request.Url);
                 if (requestHandlingResult.Status != HttpStatusCode.Accepted)
-                    response.StatusCode = (int)requestHandlingResult.Status;
+                    response.StatusCode = (int) requestHandlingResult.Status;
                 response.ContentType = "application/json";
             }
             response.ContentLength64 = requestHandlingResult.Response.Length;
