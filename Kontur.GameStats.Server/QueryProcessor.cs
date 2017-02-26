@@ -210,8 +210,7 @@ namespace Kontur.GameStats.Server
                 case "info":
                     return RequestHandlingResult.Successfull(GetBytes(GetAdvertServer(neededAdvertServer)));
                 case "matches":
-                    var dateAndTime = DateTime.Parse(splitedRequest[3]);
-                    return GetAdvertMatch(dateAndTime, neededGames);
+                    return GetAdvertMatch(splitedRequest[3], neededGames);
                 case "stats":
                     return
                         RequestHandlingResult.Successfull(
@@ -226,13 +225,22 @@ namespace Kontur.GameStats.Server
             return jsonSerializer.Serialize(advertServer[0].Info);
         }
 
-        private RequestHandlingResult GetAdvertMatch(DateTime date, GameServer[] games)
+        private RequestHandlingResult GetAdvertMatch(string date, GameServer[] games)
         {
-            if (GameServers.All(x => x.DateAndTime != date))
+            DateTime dateTime;
+            try
+            {
+                dateTime = DateTime.Parse(date);
+            }
+            catch (Exception )
+            {
+                return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
+            }
+            if (GameServers.All(x => x.DateAndTime != dateTime))
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             return
                 RequestHandlingResult.Successfull(
-                    GetBytes(jsonSerializer.Serialize(games.First(x => x.DateAndTime == date))));
+                    GetBytes(jsonSerializer.Serialize(games.First(x => x.DateAndTime == dateTime))));
         }
 
         private byte[] GetBytes(string str)

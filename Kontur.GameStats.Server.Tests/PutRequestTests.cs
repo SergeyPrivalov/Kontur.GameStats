@@ -10,7 +10,7 @@ namespace Kontur.GameStats.Server.Tests
         private readonly QueryProcessor queryProcessor = new QueryProcessor();
 
         [TestMethod]
-        public void AdvertiseRequest()
+        public void PutAdvertiseRequest()
         {
             var requestString = new Uri("http://localhost:8080/servers/1.2.3.4-1111/info");
             var body = "{\"name\": \"] My P3rfect Server [\"," +
@@ -85,6 +85,16 @@ namespace Kontur.GameStats.Server.Tests
                        "\"kills\": 2,\"deaths\": 21}]}";
 
             var result = queryProcessor.HandlePut(requestString, body);
+
+            Assert.AreEqual(HttpStatusCode.BadRequest, result.Status);
+        }
+
+        [TestMethod]
+        public void PutEmptyBody()
+        {
+            var requestString = new Uri("http://localhost:8080/servers/1.1.1.1-1333/matches/2012-12-12T12:12:12Z");
+
+            var result = queryProcessor.HandlePut(requestString, "");
 
             Assert.AreEqual(HttpStatusCode.BadRequest, result.Status);
         }

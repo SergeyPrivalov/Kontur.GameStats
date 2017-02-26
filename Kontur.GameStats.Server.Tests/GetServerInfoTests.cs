@@ -99,5 +99,21 @@ namespace Kontur.GameStats.Server.Tests
             Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
             Assert.AreEqual("", queryProcessor.GetStringFromByteArray(result.Response));
         }
+
+        [TestMethod]
+        public void GetNotPutMatch()
+        {
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-01-22T15:17:00Z"));
+
+            Assert.AreEqual(HttpStatusCode.NotFound,result.Status);
+        }
+
+        [TestMethod]
+        public void WrongRequest()
+        {
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches"));
+
+            Assert.AreEqual(HttpStatusCode.BadRequest, result.Status);
+        }
     }
 }
