@@ -21,99 +21,107 @@ namespace Kontur.GameStats.Server
 
         public void AddAdvertServer(AdvertiseQueryServer advertiseQueryServer)
         {
-            var connection = new SQLiteConnection($"{baseName}", true);
-            connection.Insert(advertiseQueryServer);
-            foreach (var gameMode in advertiseQueryServer.Info.GameModes)
-                connection.Insert(new GameMode
-                {
-                    Endpoint = advertiseQueryServer.Endpoint,
-                    Mode = gameMode
-                });
+            using (var connection = new SQLiteConnection($"{baseName}", true))
+            {
+                connection.Insert(advertiseQueryServer);
+                foreach (var gameMode in advertiseQueryServer.Info.GameModes)
+                    connection.Insert(new GameMode
+                    {
+                        Endpoint = advertiseQueryServer.Endpoint,
+                        Mode = gameMode
+                    });
+            }
         }
 
         public void AddGameServer(GameServer gameServer)
         {
-            var connection = new SQLiteConnection($"{baseName}", true);
-            connection.Insert(gameServer);
-            var players = gameServer.Scoreboard;
-            for (var i = 0; i < players.Length; ++i)
-                connection.Insert(new Player
-                {
-                    Date = gameServer.DateAndTime,
-                    Endpoint = gameServer.Endpoint,
-                    Place = i,
-                    Name = players[i].Name,
-                    Deaths = players[i].Deaths,
-                    Frags = players[i].Frags,
-                    Kills = players[i].Kills
-                });
+            using (var connection = new SQLiteConnection($"{baseName}", true))
+            {
+                connection.Insert(gameServer);
+                var players = gameServer.Scoreboard;
+                for (var i = 0; i < players.Length; ++i)
+                    connection.Insert(new Player
+                    {
+                        Date = gameServer.DateAndTime,
+                        Endpoint = gameServer.Endpoint,
+                        Place = i,
+                        Name = players[i].Name,
+                        Deaths = players[i].Deaths,
+                        Frags = players[i].Frags,
+                        Kills = players[i].Kills
+                    });
+            }
         }
 
         public void UpdateAdvertServer(AdvertiseQueryServer advertiseQueryServer)
         {
-            var connection = new SQLiteConnection($"{baseName}", true);
-            connection.BeginTransaction();
-            connection.CreateCommand(
-                $"DELETE FROM AdvertiseQueryServer WHERE endpoint = {advertiseQueryServer.Endpoint}; " +
-                $"DELETE FROM GameModes WHERE endpoint = {advertiseQueryServer.Endpoint}");
-            connection.Commit();
-            AddAdvertServer(advertiseQueryServer);
-        }
-
-        public void GetAllData()
-        {
-            var connection = new SQLiteConnection($"{baseName}", true);
-            ReadAdvertServers(connection);
-            ReadGameServers(connection);
-        }
-
-        private void ReadAdvertServers(SQLiteConnection connection)
-        {
-            var advertServers = connection.Table<AdvertiseQueryServer>();
-            var gameModes = connection.Table<GameMode>();
-            var modeDictionary = new Dictionary<string, List<string>>();
-            foreach (var gameMode in gameModes)
+            using (var connection = new SQLiteConnection($"{baseName}", true))
             {
-                if (!modeDictionary.ContainsKey(gameMode.Endpoint))
-                    modeDictionary.Add(gameMode.Endpoint, new List<string>());
-                modeDictionary[gameMode.Endpoint].Add(gameMode.Mode);
+                connection.CreateCommand(
+                    $"DELETE FROM AdvertiseQueryServer WHERE endpoint = {advertiseQueryServer.Endpoint}; " +
+                    $"DELETE FROM GameModes WHERE endpoint = {advertiseQueryServer.Endpoint}");
+                connection.Commit();
+                AddAdvertServer(advertiseQueryServer);
             }
-            foreach (var advertServer in advertServers)
-                QueryProcessor.AdvertiseServers.Add(new AdvertiseQueryServer
+        }
+
+        public List<AdvertiseQueryServer> ReadAdvertServers()
+        {
+            var resultList = new List<AdvertiseQueryServer>();
+            using (var connection = new SQLiteConnection($"{baseName}", true))
+            {
+                var advertServers = connection.Table<AdvertiseQueryServer>();
+                var gameModes = connection.Table<GameMode>();
+                var modeDictionary = new Dictionary<string, List<string>>();
+                foreach (var gameMode in gameModes)
                 {
-                    Endpoint = advertServer.Endpoint,
-                    Name = advertServer.Name,
-                    Info = new Information
+                    if (!modeDictionary.ContainsKey(gameMode.Endpoint))
+                        modeDictionary.Add(gameMode.Endpoint, new List<string>());
+                    modeDictionary[gameMode.Endpoint].Add(gameMode.Mode);
+                }
+                foreach (var advertServer in advertServers)
+                    resultList.Add(new AdvertiseQueryServer
                     {
                         Endpoint = advertServer.Endpoint,
                         Name = advertServer.Name,
-                        GameModes = modeDictionary[advertServer.Endpoint].ToArray()
-                    }
-                });
+                        Info = new Information
+                        {
+                            Endpoint = advertServer.Endpoint,
+                            Name = advertServer.Name,
+                            GameModes = modeDictionary[advertServer.Endpoint].ToArray()
+                        }
+                    });
+            }
+            return resultList;
         }
 
-        private void ReadGameServers(SQLiteConnection connection)
+        public List<GameServer> ReadGameServers()
         {
-            var gameServers = connection.Table<GameServer>();
-            var players = connection.Table<Player>();
-            foreach (var gameServer in gameServers)
+            using (var connection = new SQLiteConnection($"{baseName}", true))
             {
-                var scoreboard = players
-                    .Where(x => x.Endpoint == gameServer.Endpoint)
-                    .Where(x => x.Date == gameServer.DateAndTime)
-                    .OrderBy(x => x.Place)
-                    .ToArray();
-                QueryProcessor.GameServers.Add(new GameServer
+                var resultList = new List<GameServer>();
+                var gameServers = connection.Table<GameServer>();
+                var players = connection.Table<Player>();
+                foreach (var gameServer in gameServers)
                 {
-                    DateAndTime = gameServer.DateAndTime,
-                    Endpoint = gameServer.Endpoint,
-                    Map = gameServer.Map,
-                    GameMode = gameServer.GameMode,
-                    FragLimit = gameServer.FragLimit,
-                    TimeElapsed = gameServer.TimeElapsed,
-                    TimeLimit = gameServer.TimeLimit,
-                    Scoreboard = scoreboard
-                });
+                    var scoreboard = players
+                        .Where(x => x.Endpoint == gameServer.Endpoint)
+                        .Where(x => x.Date == gameServer.DateAndTime)
+                        .OrderBy(x => x.Place)
+                        .ToArray();
+                    resultList.Add(new GameServer
+                    {
+                        DateAndTime = gameServer.DateAndTime,
+                        Endpoint = gameServer.Endpoint,
+                        Map = gameServer.Map,
+                        GameMode = gameServer.GameMode,
+                        FragLimit = gameServer.FragLimit,
+                        TimeElapsed = gameServer.TimeElapsed,
+                        TimeLimit = gameServer.TimeLimit,
+                        Scoreboard = scoreboard
+                    });
+                }
+                return resultList;
             }
         }
     }

@@ -28,11 +28,11 @@ namespace Kontur.GameStats.Server.Tests
             var body = "{\"name\": \"] My P3rfect Server [\"," +
                        "\"gameModes\": [ \"DM\", \"TDM\" ]}";
             queryProcessor.HandlePut(requestString, body);
-            var length = QueryProcessor.AdvertiseServers.Count;
+            var length = queryProcessor.AdvertiseServers.Count;
 
             queryProcessor.HandlePut(requestString, body);
 
-            Assert.AreEqual(length, QueryProcessor.AdvertiseServers.Count);
+            Assert.AreEqual(length, queryProcessor.AdvertiseServers.Count);
         }
 
         [TestMethod]

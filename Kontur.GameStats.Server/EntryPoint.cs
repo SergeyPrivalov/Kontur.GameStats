@@ -9,9 +9,6 @@ namespace Kontur.GameStats.Server
         {
             var commandLineParser = new FluentCommandLineParser<Options>();
 
-            var dataBase = new ServerDataBase();
-            dataBase.GetAllData();
-
             commandLineParser
                 .Setup(options => options.Prefix)
                 .As("prefix")

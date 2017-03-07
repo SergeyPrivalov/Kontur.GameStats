@@ -32,17 +32,18 @@ namespace Kontur.GameStats.Server
         private readonly JsonSerializer jsonSerializer;
         private readonly GameStatistic statistic;
 
+        public List<AdvertiseQueryServer> AdvertiseServers { get; private set; }
+
+        public List<GameServer> GameServers { get; private set; }
+
         public QueryProcessor()
         {
             dataBase = new ServerDataBase();
             statistic = new GameStatistic();
             jsonSerializer = new JsonSerializer();
+            AdvertiseServers = dataBase.ReadAdvertServers();
+            GameServers = dataBase.ReadGameServers();
         }
-
-        public static List<AdvertiseQueryServer> AdvertiseServers { get; set; }
-            = new List<AdvertiseQueryServer>();
-
-        public static List<GameServer> GameServers { get; set; } = new List<GameServer>();
 
         public RequestHandlingResult HandleGet(Uri uri)
         {
@@ -175,15 +176,15 @@ namespace Kontur.GameStats.Server
                 case "recent-matches":
                     return
                         RequestHandlingResult.Successfull(
-                            GetBytes(jsonSerializer.Serialize(statistic.GetRecentMatches(n))));
+                            GetBytes(jsonSerializer.Serialize(statistic.GetRecentMatches(n, GameServers))));
                 case "best-players":
                     return
                         RequestHandlingResult.Successfull(
-                            GetBytes(jsonSerializer.Serialize(statistic.GetBestPlayers(n))));
+                            GetBytes(jsonSerializer.Serialize(statistic.GetBestPlayers(n, GameServers))));
                 case "popular-servers":
                     return
                         RequestHandlingResult.Successfull(
-                            GetBytes(jsonSerializer.Serialize(statistic.GetPopularServers(n))));
+                            GetBytes(jsonSerializer.Serialize(statistic.GetPopularServers(n,AdvertiseServers,GameServers))));
                 default:
                     return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }

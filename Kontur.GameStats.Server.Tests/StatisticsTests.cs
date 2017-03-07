@@ -54,7 +54,7 @@ namespace Kontur.GameStats.Server.Tests
         public void GetServersStats()
         {
             var endpoint = "12.12.12.12-1333";
-            QueryProcessor.AdvertiseServers.Add(firstServer);
+            queryProcessor.AdvertiseServers.Add(firstServer);
             MultiAdd(endpoint, date1, 2, gameServer1);
             MultiAdd(endpoint, date1, 2, gameServer3);
             MultiAdd(endpoint, date2, 2, gameServer2);
@@ -76,6 +76,11 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetPlayerStats()
         {
+            var endpoint = "12.12.12.12-1333";
+            queryProcessor.AdvertiseServers.Add(firstServer);
+            MultiAdd(endpoint, date1, 2, gameServer1);
+            MultiAdd(endpoint, date1, 2, gameServer3);
+            MultiAdd(endpoint, date2, 2, gameServer2);
             var answerString = "{\"totalMatchesPlayed\":6," +
                                "\"totalMatchesWon\":4," +
                                "\"favoriteServer\":\"12.12.12.12-1333\"," +
@@ -84,7 +89,7 @@ namespace Kontur.GameStats.Server.Tests
                                "\"averageScoreboardPercent\":83.333333," +
                                "\"maximumMatchesPerDay\":4," +
                                "\"averageMatchesPerDay\":3.0," +
-                               "\"lastMatchPlayed\":\"2020-1-23T14:0:0Z\"," +
+                               "\"lastMatchPlayed\":\"2020-1-23T9:0:0Z\"," +
                                "\"killToDeathRatio\":1.62963}";
 
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/players/player20/stats"));
@@ -96,7 +101,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetRecentMatches()
         {
-            var answer = jsonSerializer.Serialize(QueryProcessor.GameServers
+            var answer = jsonSerializer.Serialize(queryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(10)
                 .Select(x =>
@@ -117,7 +122,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetRecentMatchesWithoutCount()
         {
-            var answer = jsonSerializer.Serialize(QueryProcessor.GameServers
+            var answer = jsonSerializer.Serialize(queryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(5)
                 .Select(x =>
@@ -138,7 +143,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetRecentMatchesMoreThan50()
         {
-            var answer = jsonSerializer.Serialize(QueryProcessor.GameServers
+            var answer = jsonSerializer.Serialize(queryProcessor.GameServers
                 .OrderByDescending(x => x.DateAndTime)
                 .Take(50)
                 .Select(x =>
@@ -170,12 +175,12 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetPopularServer()
         {
-            var answer = jsonSerializer.Serialize(QueryProcessor.AdvertiseServers
+            var answer = jsonSerializer.Serialize(queryProcessor.AdvertiseServers
                 .Select(x => new PopularServer
                 {
                     Enpoint = x.Endpoint,
                     Name = x.Info.Name,
-                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Endpoint)
+                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Endpoint, queryProcessor.GameServers)
                 })
                 .OrderByDescending(x => x.AverageMatchPerDay)
                 .Take(15)
@@ -187,12 +192,12 @@ namespace Kontur.GameStats.Server.Tests
             Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
         }
 
-        private static void MultiAdd(string endpoint, DateTime date, int n, GameServer gameServer)
+        private void MultiAdd(string endpoint, DateTime date, int n, GameServer gameServer)
         {
             gameServer.Endpoint = endpoint;
             gameServer.DateAndTime = date;
             for (var i = 0; i < n; i++)
-                QueryProcessor.GameServers.Add(gameServer);
+                queryProcessor.GameServers.Add(gameServer);
         }
     }
 }
