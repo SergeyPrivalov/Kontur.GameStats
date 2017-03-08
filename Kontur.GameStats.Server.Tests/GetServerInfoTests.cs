@@ -40,8 +40,8 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetServerInfo()
         {
-            queryProcessor.AdvertiseServers.Add(firstServer);
-            queryProcessor.AdvertiseServers.Add(secondServer);
+            queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint,firstServer,(s, server) => firstServer);
+            queryProcessor.AdvertiseServers.AddOrUpdate(secondServer.Endpoint, secondServer, (s, server) => secondServer);
             var info = jsonSerializer.Serialize(queryProcessor.AdvertiseServers.ToArray());
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/info"));
 
@@ -76,7 +76,7 @@ namespace Kontur.GameStats.Server.Tests
         [TestMethod]
         public void GetMatchInfo()
         {
-            queryProcessor.AdvertiseServers.Add(firstServer);
+            queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint, firstServer, (s, server) => firstServer);
             gameServer.Endpoint = "167.42.23.32-1337";
             gameServer.DateAndTime = new DateTime(2017, 11, 22, 20, 17, 00);
             queryProcessor.GameServers.Add(gameServer);

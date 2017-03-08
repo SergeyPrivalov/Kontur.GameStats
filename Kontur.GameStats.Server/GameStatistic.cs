@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -101,7 +102,7 @@ namespace Kontur.GameStats.Server
                 .ToArray();
         }
 
-        public BestPlayer[] GetBestPlayers(int n, List<GameServer> gameServers)
+        public BestPlayer[] GetBestPlayers(int n, BlockingCollection<GameServer> gameServers)
         {
             var playersNames = gameServers
                 .SelectMany(x => x.Scoreboard)
@@ -126,14 +127,14 @@ namespace Kontur.GameStats.Server
                 .ToArray();
         }
 
-        public PopularServer[] GetPopularServers(int n, IEnumerable<AdvertiseQueryServer> advertiseServers, IEnumerable<GameServer> gameServers)
+        public PopularServer[] GetPopularServers(int n, ConcurrentDictionary<string,AdvertiseQueryServer> advertiseServers, IEnumerable<GameServer> gameServers)
         {
             return advertiseServers
                 .Select(x => new PopularServer
                 {
-                    Enpoint = x.Endpoint,
-                    Name = x.Info.Name,
-                    AverageMatchPerDay = GetAverageMatchPerDay(x.Endpoint, gameServers)
+                    Enpoint = x.Key,
+                    Name = x.Value.Info.Name,
+                    AverageMatchPerDay = GetAverageMatchPerDay(x.Key, gameServers)
                 })
                 .OrderByDescending(x => x.AverageMatchPerDay)
                 .Take(n)

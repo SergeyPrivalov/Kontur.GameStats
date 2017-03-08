@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -32,9 +32,9 @@ namespace Kontur.GameStats.Server
         private readonly JsonSerializer jsonSerializer;
         private readonly GameStatistic statistic;
 
-        public List<AdvertiseQueryServer> AdvertiseServers { get; private set; }
+        public ConcurrentDictionary<string,AdvertiseQueryServer> AdvertiseServers { get; }
 
-        public List<GameServer> GameServers { get; private set; }
+        public BlockingCollection<GameServer> GameServers { get; }
 
         public QueryProcessor()
         {
@@ -79,24 +79,18 @@ namespace Kontur.GameStats.Server
             if (!jsonSerializer.TryDeserialize(body, out info) || !CheckInfoField(body))
                 return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             var advertRequest = new AdvertiseQueryServer(endpoint, info);
-            var index = AdvertiseServers.IndexOf(advertRequest);
-            if (index >= 0)
-            {
-                AdvertiseServers[index] = advertRequest;
+            if (AdvertiseServers.ContainsKey(endpoint))
                 dataBase.UpdateAdvertServer(advertRequest);
-            }
             else
-            {
-                AdvertiseServers.Add(advertRequest);
                 dataBase.AddAdvertServer(advertRequest);
-            }
+            AdvertiseServers.AddOrUpdate(endpoint, advertRequest, ((s, server) => advertRequest));
             return RequestHandlingResult.Successfull(new byte[0]);
         }
 
         private RequestHandlingResult PutMatches(string endpoint, string body, string date)
         {
             GameServer gameServer;
-            if (AdvertiseServers.All(x => x.Endpoint != endpoint) ||
+            if (!AdvertiseServers.ContainsKey(endpoint) ||
                 !CheckMatchField(body) ||
                 !jsonSerializer.TryDeserialize(body, out gameServer) ||
                 !CheckGameMode(endpoint, gameServer.GameMode))
@@ -126,8 +120,8 @@ namespace Kontur.GameStats.Server
 
         private bool CheckGameMode(string endpoint, string gameMode)
         {
-            return AdvertiseServers.Where(x => x.Endpoint == endpoint)
-                .Select(x => x.Info.GameModes).Any(x => x.Contains(gameMode));
+            return AdvertiseServers.Where(x => x.Key == endpoint)
+                .Select(x => x.Value.Info.GameModes).Any(x => x.Contains(gameMode));
         }
 
         private RequestHandlingResult ProcessGetRequest(string requestString)
@@ -203,13 +197,13 @@ namespace Kontur.GameStats.Server
                 return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(AdvertiseServers.ToArray())));
             var endpoint = splitedRequest[1];
             var neededGames = GameServers.Where(x => x.Endpoint == endpoint).ToArray();
-            var neededAdvertServer = AdvertiseServers.Where(x => x.Endpoint == endpoint).ToArray();
-            if (neededAdvertServer.Length == 0 && neededGames.Length == 0)
+            var neededAdvertServer = AdvertiseServers.Where(x => x.Key == endpoint).ToArray();
+            if (!neededAdvertServer.Any() && neededGames.Length == 0)
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             switch (splitedRequest[2])
             {
                 case "info":
-                    return RequestHandlingResult.Successfull(GetBytes(GetAdvertServer(neededAdvertServer)));
+                    return RequestHandlingResult.Successfull(GetBytes(GetAdvertServer(neededAdvertServer[0].Value)));
                 case "matches":
                     return GetAdvertMatch(splitedRequest[3], neededGames);
                 case "stats":
@@ -221,9 +215,9 @@ namespace Kontur.GameStats.Server
             }
         }
 
-        private string GetAdvertServer(AdvertiseQueryServer[] advertServer)
+        private string GetAdvertServer(AdvertiseQueryServer advertServer)
         {
-            return jsonSerializer.Serialize(advertServer[0].Info);
+            return jsonSerializer.Serialize(advertServer.Info);
         }
 
         private RequestHandlingResult GetAdvertMatch(string date, GameServer[] games)

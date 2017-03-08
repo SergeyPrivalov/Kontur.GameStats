@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using SQLite;
 
@@ -65,9 +66,9 @@ namespace Kontur.GameStats.Server
             }
         }
 
-        public List<AdvertiseQueryServer> ReadAdvertServers()
+        public ConcurrentDictionary<string, AdvertiseQueryServer> ReadAdvertServers()
         {
-            var resultList = new List<AdvertiseQueryServer>();
+            var serversCollection = new ConcurrentDictionary<string, AdvertiseQueryServer>();
             using (var connection = new SQLiteConnection($"{baseName}", true))
             {
                 var advertServers = connection.Table<AdvertiseQueryServer>();
@@ -80,7 +81,8 @@ namespace Kontur.GameStats.Server
                     modeDictionary[gameMode.Endpoint].Add(gameMode.Mode);
                 }
                 foreach (var advertServer in advertServers)
-                    resultList.Add(new AdvertiseQueryServer
+                {
+                    var newServer = new AdvertiseQueryServer
                     {
                         Endpoint = advertServer.Endpoint,
                         Name = advertServer.Name,
@@ -90,16 +92,18 @@ namespace Kontur.GameStats.Server
                             Name = advertServer.Name,
                             GameModes = modeDictionary[advertServer.Endpoint].ToArray()
                         }
-                    });
+                    };
+                    serversCollection.AddOrUpdate(advertServer.Endpoint, newServer, (s, server) => newServer);
+                }
             }
-            return resultList;
+            return serversCollection;
         }
 
-        public List<GameServer> ReadGameServers()
+        public BlockingCollection<GameServer> ReadGameServers()
         {
             using (var connection = new SQLiteConnection($"{baseName}", true))
             {
-                var resultList = new List<GameServer>();
+                var gamesCollection = new BlockingCollection<GameServer>();
                 var gameServers = connection.Table<GameServer>();
                 var players = connection.Table<Player>();
                 foreach (var gameServer in gameServers)
@@ -109,7 +113,7 @@ namespace Kontur.GameStats.Server
                         .Where(x => x.Date == gameServer.DateAndTime)
                         .OrderBy(x => x.Place)
                         .ToArray();
-                    resultList.Add(new GameServer
+                    gamesCollection.Add(new GameServer
                     {
                         DateAndTime = gameServer.DateAndTime,
                         Endpoint = gameServer.Endpoint,
@@ -121,7 +125,7 @@ namespace Kontur.GameStats.Server
                         Scoreboard = scoreboard
                     });
                 }
-                return resultList;
+                return gamesCollection;
             }
         }
     }

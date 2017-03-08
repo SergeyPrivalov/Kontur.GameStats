@@ -54,7 +54,7 @@ namespace Kontur.GameStats.Server.Tests
         public void GetServersStats()
         {
             var endpoint = "12.12.12.12-1333";
-            queryProcessor.AdvertiseServers.Add(firstServer);
+            queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint, firstServer, (s, server) => firstServer);
             MultiAdd(endpoint, date1, 2, gameServer1);
             MultiAdd(endpoint, date1, 2, gameServer3);
             MultiAdd(endpoint, date2, 2, gameServer2);
@@ -77,7 +77,7 @@ namespace Kontur.GameStats.Server.Tests
         public void GetPlayerStats()
         {
             var endpoint = "12.12.12.12-1333";
-            queryProcessor.AdvertiseServers.Add(firstServer);
+            queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint,firstServer, (s, server) => firstServer);
             MultiAdd(endpoint, date1, 2, gameServer1);
             MultiAdd(endpoint, date1, 2, gameServer3);
             MultiAdd(endpoint, date2, 2, gameServer2);
@@ -178,9 +178,9 @@ namespace Kontur.GameStats.Server.Tests
             var answer = jsonSerializer.Serialize(queryProcessor.AdvertiseServers
                 .Select(x => new PopularServer
                 {
-                    Enpoint = x.Endpoint,
-                    Name = x.Info.Name,
-                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Endpoint, queryProcessor.GameServers)
+                    Enpoint = x.Key,
+                    Name = x.Value.Info.Name,
+                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Key, queryProcessor.GameServers)
                 })
                 .OrderByDescending(x => x.AverageMatchPerDay)
                 .Take(15)
