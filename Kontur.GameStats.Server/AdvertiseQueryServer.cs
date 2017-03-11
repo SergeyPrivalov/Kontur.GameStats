@@ -3,7 +3,7 @@ using SQLite;
 
 namespace Kontur.GameStats.Server
 {
-    [System.ComponentModel.DataAnnotations.Schema.Table("AdvertiseQueryServer")]
+    [Table("AdvertiseQueryServer")]
     public class AdvertiseQueryServer
     {
         public AdvertiseQueryServer()
@@ -19,7 +19,7 @@ namespace Kontur.GameStats.Server
         }
 
         [JsonProperty("endpoint")]
-        [System.ComponentModel.DataAnnotations.Schema.Column("endpoint")]
+        [Column("endpoint")]
         public string Endpoint { get; set; }
 
         [JsonProperty("info")]
@@ -45,14 +45,6 @@ namespace Kontur.GameStats.Server
 
     public class Information
     {
-        public Information()
-        {
-            GameModes = new string[0];
-        }
-
-        [JsonIgnore]
-        public string Endpoint { get; set; }
-
         [JsonProperty("name")]
         public string Name { get; set; }
 

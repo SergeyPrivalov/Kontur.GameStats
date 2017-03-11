@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -32,7 +34,7 @@ namespace Kontur.GameStats.Server
         private readonly JsonSerializer jsonSerializer;
         private readonly GameStatistic statistic;
 
-        public ConcurrentDictionary<string,AdvertiseQueryServer> AdvertiseServers { get; }
+        public ConcurrentDictionary<string, AdvertiseQueryServer> AdvertiseServers { get; }
 
         public BlockingCollection<GameServer> GameServers { get; }
 
@@ -96,7 +98,7 @@ namespace Kontur.GameStats.Server
                 !CheckGameMode(endpoint, gameServer.GameMode))
                 return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             gameServer.Endpoint = endpoint;
-            gameServer.DateAndTime = DateTime.Parse(date);
+            gameServer.DateAndTime = DateTime.Parse(date, null, DateTimeStyles.RoundtripKind);
             GameServers.Add(gameServer);
             dataBase.AddGameServer(gameServer);
             return RequestHandlingResult.Successfull(new byte[0]);
@@ -146,9 +148,10 @@ namespace Kontur.GameStats.Server
         private RequestHandlingResult GetPlayersStatistic(string request)
         {
             var splitRequest = request.Split('/');
-            var name = splitRequest[0].ToLower();
+            var name = splitRequest[0];
             var games = GameServers
-                .Where(x => x.Scoreboard.Any(y => y.Name.ToLower() == name)).ToArray();
+                .Where(x => x.Scoreboard.Any(y => y.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)))
+                .ToArray();
             if (games.Length == 0)
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             return RequestHandlingResult.Successfull(
@@ -158,36 +161,35 @@ namespace Kontur.GameStats.Server
         private RequestHandlingResult GetReport(string request)
         {
             var splitRequest = ReportRegex.Split(request)
-                .Where(x => x != "")
+                .Where(x => !string.IsNullOrEmpty(x))
                 .ToArray();
             var n = 5;
             if (splitRequest.Length > 1)
-                n = GetNInRightDiapason(int.Parse(splitRequest[1]));
+                n = GetRightCountOfItems(int.Parse(splitRequest[1]));
             if (n == 0 || GameServers.Count == 0)
-                return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(new string[] {})));
+                return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(new string[0])));
+            object reportResult;
             switch (splitRequest[0])
             {
                 case "recent-matches":
-                    return
-                        RequestHandlingResult.Successfull(
-                            GetBytes(jsonSerializer.Serialize(statistic.GetRecentMatches(n, GameServers))));
+                    reportResult = statistic.GetRecentMatches(n, GameServers);
+                    break;
                 case "best-players":
-                    return
-                        RequestHandlingResult.Successfull(
-                            GetBytes(jsonSerializer.Serialize(statistic.GetBestPlayers(n, GameServers))));
+                    reportResult = statistic.GetBestPlayers(n, GameServers);
+                    break;
                 case "popular-servers":
-                    return
-                        RequestHandlingResult.Successfull(
-                            GetBytes(jsonSerializer.Serialize(statistic.GetPopularServers(n,AdvertiseServers,GameServers))));
+                    reportResult = statistic.GetPopularServers(n, AdvertiseServers, GameServers);
+                    break;
                 default:
                     return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
+            return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(reportResult)));
         }
 
-        private static int GetNInRightDiapason(int n)
+        private static int GetRightCountOfItems(int countOfItems)
         {
-            if (n <= 0) return 0;
-            return n >= 50 ? 50 : n;
+            if (countOfItems <= 0) return 0;
+            return countOfItems >= 50 ? 50 : countOfItems;
         }
 
         private RequestHandlingResult GetServerInformation(string request)
@@ -225,9 +227,9 @@ namespace Kontur.GameStats.Server
             DateTime dateTime;
             try
             {
-                dateTime = DateTime.Parse(date);
+                dateTime = DateTime.Parse(date, null, DateTimeStyles.RoundtripKind);
             }
-            catch (Exception )
+            catch (Exception)
             {
                 return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
@@ -240,12 +242,12 @@ namespace Kontur.GameStats.Server
 
         private byte[] GetBytes(string str)
         {
-            return Encoding.ASCII.GetBytes(str);
+            return Encoding.Unicode.GetBytes(str);
         }
 
         public string GetStringFromByteArray(byte[] bytes)
         {
-            return Encoding.UTF8.GetString(bytes);
+            return Encoding.Unicode.GetString(bytes);
         }
     }
 }

@@ -89,7 +89,7 @@ namespace Kontur.GameStats.Server.Tests
                                "\"averageScoreboardPercent\":83.333333," +
                                "\"maximumMatchesPerDay\":4," +
                                "\"averageMatchesPerDay\":3.0," +
-                               "\"lastMatchPlayed\":\"2020-1-23T9:0:0Z\"," +
+                               "\"lastMatchPlayed\":\"2020-01-23T14:00:00Z\"," +
                                "\"killToDeathRatio\":1.62963}";
 
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/players/player20/stats"));
@@ -108,7 +108,7 @@ namespace Kontur.GameStats.Server.Tests
                     new RecentMatch
                     {
                         Server = x.Endpoint,
-                        Timestamp = statistic.DateToString(x.DateAndTime),
+                        Timestamp = x.DateAndTime.ToString("yyyy-MM-dTHH:mm:ssZ"),
                         Result = x
                     })
                 .ToArray());
@@ -129,7 +129,7 @@ namespace Kontur.GameStats.Server.Tests
                     new RecentMatch
                     {
                         Server = x.Endpoint,
-                        Timestamp = statistic.DateToString(x.DateAndTime),
+                        Timestamp = x.DateAndTime.ToString("yyyy-MM-dTHH:mm:ssZ"),
                         Result = x
                     })
                 .ToArray());
@@ -150,7 +150,7 @@ namespace Kontur.GameStats.Server.Tests
                     new RecentMatch
                     {
                         Server = x.Endpoint,
-                        Timestamp = statistic.DateToString(x.DateAndTime),
+                        Timestamp = x.DateAndTime.ToString("yyyy-MM-dTHH:mm:ssZ"),
                         Result = x
                     })
                 .ToArray());
@@ -180,7 +180,7 @@ namespace Kontur.GameStats.Server.Tests
                 {
                     Enpoint = x.Key,
                     Name = x.Value.Info.Name,
-                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Key, queryProcessor.GameServers)
+                    AverageMatchPerDay = statistic.GetAverageMatchPerDay(x.Key, queryProcessor.GameServers.ToArray())
                 })
                 .OrderByDescending(x => x.AverageMatchPerDay)
                 .Take(15)

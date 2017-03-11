@@ -84,7 +84,7 @@ namespace Kontur.GameStats.Server.Tests
 
 
             var result = queryProcessor.HandleGet(
-                new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-11-22T15:17:00Z"));
+                new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-11-22T20:17:00Z"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
             Assert.AreEqual(info, queryProcessor.GetStringFromByteArray(result.Response));

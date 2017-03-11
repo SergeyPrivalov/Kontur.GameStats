@@ -11,7 +11,7 @@ namespace Kontur.GameStats.Server
 
         public ServerDataBase()
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}"))
             {
                 connection.CreateTable<AdvertiseQueryServer>();
                 connection.CreateTable<GameMode>();
@@ -22,7 +22,7 @@ namespace Kontur.GameStats.Server
 
         public void AddAdvertServer(AdvertiseQueryServer advertiseQueryServer)
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}"))
             {
                 connection.Insert(advertiseQueryServer);
                 foreach (var gameMode in advertiseQueryServer.Info.GameModes)
@@ -36,7 +36,7 @@ namespace Kontur.GameStats.Server
 
         public void AddGameServer(GameServer gameServer)
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}"))
             {
                 connection.Insert(gameServer);
                 var players = gameServer.Scoreboard;
@@ -56,7 +56,7 @@ namespace Kontur.GameStats.Server
 
         public void UpdateAdvertServer(AdvertiseQueryServer advertiseQueryServer)
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}"))
             {
                 connection.CreateCommand(
                     $"DELETE FROM AdvertiseQueryServer WHERE endpoint = {advertiseQueryServer.Endpoint}; " +
@@ -69,7 +69,7 @@ namespace Kontur.GameStats.Server
         public ConcurrentDictionary<string, AdvertiseQueryServer> ReadAdvertServers()
         {
             var serversCollection = new ConcurrentDictionary<string, AdvertiseQueryServer>();
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}"))
             {
                 var advertServers = connection.Table<AdvertiseQueryServer>();
                 var gameModes = connection.Table<GameMode>();
@@ -88,7 +88,7 @@ namespace Kontur.GameStats.Server
                         Name = advertServer.Name,
                         Info = new Information
                         {
-                            Endpoint = advertServer.Endpoint,
+                            //Endpoint = advertServer.Endpoint,
                             Name = advertServer.Name,
                             GameModes = modeDictionary[advertServer.Endpoint].ToArray()
                         }
@@ -109,8 +109,7 @@ namespace Kontur.GameStats.Server
                 foreach (var gameServer in gameServers)
                 {
                     var scoreboard = players
-                        .Where(x => x.Endpoint == gameServer.Endpoint)
-                        .Where(x => x.Date == gameServer.DateAndTime)
+                        .Where(x => x.Endpoint == gameServer.Endpoint && x.Date == gameServer.DateAndTime)
                         .OrderBy(x => x.Place)
                         .ToArray();
                     gamesCollection.Add(new GameServer

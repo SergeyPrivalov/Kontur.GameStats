@@ -9,10 +9,10 @@ namespace Kontur.GameStats.Server
     {
         public ServerStats GetServerStatistic(GameServer[] games)
         {
-            var groupByDate = games.GroupBy(x => x.Date).ToArray();
+            var groupByDate = games.GroupBy(x => x.DateAndTime.Date).ToArray();
             return new ServerStats
             {
-                TotalMatchesPlaed = games.Length,
+                TotalMatchesPlayed = games.Length,
                 MaximumMatchesPerDay = groupByDate.Max(x => x.Count()),
                 AverageMatchesPerDay = GetDivision(games.Length, groupByDate.Length),
                 MaximumPopulation = games.Max(x => x.Scoreboard.Length),
@@ -39,18 +39,19 @@ namespace Kontur.GameStats.Server
         public PlayerStats GetPlayerStatistic(string name, GameServer[] games)
         {
             var groupByEndpoint = games.GroupBy(x => x.Endpoint).ToArray();
-            var groupByDate = games.GroupBy(x => x.Date).ToArray();
+            var groupByDate = games.GroupBy(x => x.DateAndTime.Date).ToArray();
             return new PlayerStats
             {
                 TotalMatchesPlayed = games.Length,
-                TotalMatchesWon = games.Count(x => x.Scoreboard[0].Name.ToLower() == name),
+                TotalMatchesWon =
+                    games.Count(x => x.Scoreboard[0].Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)),
                 FavoriteServer = GetTopN(1, groupByEndpoint)[0],
                 UniqueServers = groupByEndpoint.Count(),
                 FavoriteGameMode = GetTopN(1, games.GroupBy(x => x.GameMode))[0],
                 AverageScoreboardPercent = GetAverageScoreboardPercent(games, name),
                 MaximumMatchesPerDay = groupByDate.Max(x => x.Count()),
                 AverageMatchesPerDay = GetDivision(games.Length, groupByDate.Length),
-                LastMatchPlayed = DateToString(games.Max(x => x.DateAndTime)),
+                LastMatchPlayed = games.Max(x => x.DateAndTime).ToString("yyyy-MM-dTHH:mm:ssZ"),
                 KillToDeathRatio = GetKillToDeathRatio(GetPlayerStats(games, name))
             };
         }
@@ -58,7 +59,8 @@ namespace Kontur.GameStats.Server
         private Player[] GetPlayerStats(IEnumerable<GameServer> gameServers, string name)
         {
             return gameServers
-                .SelectMany(x => x.Scoreboard.Where(y => y.Name.ToLower() == name))
+                .SelectMany(x => x.Scoreboard
+                    .Where(y => y.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)))
                 .ToArray();
         }
 
@@ -81,12 +83,6 @@ namespace Kontur.GameStats.Server
             return Math.Round(averageScoreboard.Average(), 6);
         }
 
-        public string DateToString(DateTime date)
-        {
-            return $"{date.Year}-{date.Month}-{date.Day}T" +
-                   $"{date.Hour - 5}:{date.Minute}:{date.Second}Z";
-        }
-
         public RecentMatch[] GetRecentMatches(int n, IEnumerable<GameServer> gameServers)
         {
             return gameServers
@@ -96,7 +92,7 @@ namespace Kontur.GameStats.Server
                     new RecentMatch
                     {
                         Server = x.Endpoint,
-                        Timestamp = DateToString(x.DateAndTime),
+                        Timestamp = x.DateAndTime.ToString("yyyy-MM-dTHH:mm:ssZ"),
                         Result = x
                     })
                 .ToArray();
@@ -108,8 +104,7 @@ namespace Kontur.GameStats.Server
                 .SelectMany(x => x.Scoreboard)
                 .GroupBy(x => x.Name)
                 .Where(x => x.Count() >= 10)
-                .Select(x => x.Key)
-                .ToArray();
+                .Select(x => x.Key);
             var listOfPlayers = new List<BestPlayer>();
             foreach (var name in playersNames)
             {
@@ -127,21 +122,23 @@ namespace Kontur.GameStats.Server
                 .ToArray();
         }
 
-        public PopularServer[] GetPopularServers(int n, ConcurrentDictionary<string,AdvertiseQueryServer> advertiseServers, IEnumerable<GameServer> gameServers)
+        public PopularServer[] GetPopularServers(int countOfServers,
+            ConcurrentDictionary<string, AdvertiseQueryServer> advertiseServers,
+            IEnumerable<GameServer> gameServers)
         {
             return advertiseServers
                 .Select(x => new PopularServer
                 {
                     Enpoint = x.Key,
                     Name = x.Value.Info.Name,
-                    AverageMatchPerDay = GetAverageMatchPerDay(x.Key, gameServers)
+                    AverageMatchPerDay = GetAverageMatchPerDay(x.Key, gameServers.ToArray())
                 })
                 .OrderByDescending(x => x.AverageMatchPerDay)
-                .Take(n)
+                .Take(countOfServers)
                 .ToArray();
         }
 
-        public double GetAverageMatchPerDay(string enpoint, IEnumerable<GameServer> gameServers)
+        public double GetAverageMatchPerDay(string enpoint, GameServer[] gameServers)
         {
             return GetDivision(
                 gameServers
@@ -149,7 +146,7 @@ namespace Kontur.GameStats.Server
                     .Count(x => x.Key == enpoint),
                 gameServers
                     .Where(x => x.Endpoint == enpoint)
-                    .GroupBy(x => x.Date).Count());
+                    .GroupBy(x => x.DateAndTime.Date).Count());
         }
     }
 }

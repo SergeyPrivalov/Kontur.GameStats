@@ -4,17 +4,19 @@ using SQLite;
 
 namespace Kontur.GameStats.Server
 {
-    [System.ComponentModel.DataAnnotations.Schema.Table("GameServer")]
+    [Table("GameServer")]
     public class GameServer
     {
-        [JsonIgnore] private DateTime dateAndTime;
-
         public GameServer()
         {
         }
 
-        public GameServer(string map, string gameMode, int fraglimit,
-            int timeLimit, double timeElapsed, Player[] scoreboard)
+        public GameServer(string map,
+            string gameMode,
+            int fraglimit,
+            int timeLimit,
+            double timeElapsed,
+            Player[] scoreboard)
         {
             Map = map;
             GameMode = gameMode;
@@ -25,44 +27,31 @@ namespace Kontur.GameStats.Server
         }
 
         [JsonIgnore]
-        [System.ComponentModel.DataAnnotations.Schema.Column("date")]
-        public DateTime Date { get; private set; }
+        [Column("dateAndTime")]
+        public DateTime DateAndTime { get; set; }
 
         [JsonIgnore]
-        [System.ComponentModel.DataAnnotations.Schema.Column("dateAndTime")]
-        public DateTime DateAndTime
-        {
-            get { return dateAndTime; }
-            set
-            {
-                dateAndTime = value;
-                Date = new DateTime(DateAndTime.Year,
-                    DateAndTime.Month, DateAndTime.Day);
-            }
-        }
-
-        [JsonIgnore]
-        [System.ComponentModel.DataAnnotations.Schema.Column("endpoint")]
+        [Column("endpoint")]
         public string Endpoint { get; set; }
 
         [JsonProperty("map")]
-        [System.ComponentModel.DataAnnotations.Schema.Column("map")]
+        [Column("map")]
         public string Map { get; set; }
 
         [JsonProperty("gameMode")]
-        [System.ComponentModel.DataAnnotations.Schema.Column("gameMode")]
+        [Column("gameMode")]
         public string GameMode { get; set; }
 
         [JsonProperty("fragLimit")]
-        [System.ComponentModel.DataAnnotations.Schema.Column("fragLimit")]
+        [Column("fragLimit")]
         public int FragLimit { get; set; }
 
         [JsonProperty("timeLimit")]
-        [System.ComponentModel.DataAnnotations.Schema.Column("timeLimit")]
+        [Column("timeLimit")]
         public int TimeLimit { get; set; }
 
         [JsonProperty("timeElapsed")]
-        [System.ComponentModel.DataAnnotations.Schema.Column("timeElapsed")]
+        [Column("timeElapsed")]
         public double TimeElapsed { get; set; }
 
         [JsonProperty("scoreboard")]
