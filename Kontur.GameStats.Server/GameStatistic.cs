@@ -12,7 +12,7 @@ namespace Kontur.GameStats.Server
             var groupByDate = games.GroupBy(x => x.Date).ToArray();
             return new ServerStats
             {
-                TotalMatchesPlaed = games.Length,
+                TotalMatchesPlayed = games.Length,
                 MaximumMatchesPerDay = groupByDate.Max(x => x.Count()),
                 AverageMatchesPerDay = GetDivision(games.Length, groupByDate.Length),
                 MaximumPopulation = games.Max(x => x.Scoreboard.Length),
@@ -29,6 +29,7 @@ namespace Kontur.GameStats.Server
 
         private string[] GetTopN(int n, IEnumerable<IGrouping<string, GameServer>> game)
         {
+            //че за n - непонятно
             return game
                 .OrderByDescending(x => x.Count())
                 .Select(x => x.Key)
@@ -58,7 +59,9 @@ namespace Kontur.GameStats.Server
         private Player[] GetPlayerStats(IEnumerable<GameServer> gameServers, string name)
         {
             return gameServers
+                //опять же сравнение с ToLower.. 
                 .SelectMany(x => x.Scoreboard.Where(y => y.Name.ToLower() == name))
+                //.SelectMany(x => x.Scoreboard.Where(y => y.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase))) лучше так
                 .ToArray();
         }
 
@@ -85,6 +88,8 @@ namespace Kontur.GameStats.Server
         {
             return $"{date.Year}-{date.Month}-{date.Day}T" +
                    $"{date.Hour - 5}:{date.Minute}:{date.Second}Z";
+            //запустят в другом часовом поясе и все эти - 5 буту ошибочными
+            //лучше использовать date.ToString(и здесь указать формат)
         }
 
         public RecentMatch[] GetRecentMatches(int n, IEnumerable<GameServer> gameServers)
@@ -109,7 +114,7 @@ namespace Kontur.GameStats.Server
                 .GroupBy(x => x.Name)
                 .Where(x => x.Count() >= 10)
                 .Select(x => x.Key)
-                .ToArray();
+                .ToArray();//зачем ToArray? он перечисляет коллекцию. Притом сразу снизу ты снова перечисляешь ту же самую коллекцию
             var listOfPlayers = new List<BestPlayer>();
             foreach (var name in playersNames)
             {
@@ -127,7 +132,10 @@ namespace Kontur.GameStats.Server
                 .ToArray();
         }
 
-        public PopularServer[] GetPopularServers(int n, ConcurrentDictionary<string,AdvertiseQueryServer> advertiseServers, IEnumerable<GameServer> gameServers)
+        public PopularServer[] GetPopularServers(
+            int n, 
+            ConcurrentDictionary<string, AdvertiseQueryServer> advertiseServers,
+            IEnumerable<GameServer> gameServers)
         {
             return advertiseServers
                 .Select(x => new PopularServer
@@ -137,12 +145,14 @@ namespace Kontur.GameStats.Server
                     AverageMatchPerDay = GetAverageMatchPerDay(x.Key, gameServers)
                 })
                 .OrderByDescending(x => x.AverageMatchPerDay)
-                .Take(n)
+                .Take(n) //что такое n, дай ему нормальное название
                 .ToArray();
         }
 
         public double GetAverageMatchPerDay(string enpoint, IEnumerable<GameServer> gameServers)
         {
+            //решарпер ругается, что здесь коллекция серверов может уже начать что то перечислять
+            //так что лучше все таки здесь принимать массив ну или IList если нарвится
             return GetDivision(
                 gameServers
                     .GroupBy(x => x.Endpoint)

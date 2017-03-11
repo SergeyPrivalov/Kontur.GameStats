@@ -3,7 +3,7 @@ using SQLite;
 
 namespace Kontur.GameStats.Server
 {
-    [System.ComponentModel.DataAnnotations.Schema.Table("AdvertiseQueryServer")]
+    [Table("AdvertiseQueryServer")]
     public class AdvertiseQueryServer
     {
         public AdvertiseQueryServer()
@@ -19,7 +19,7 @@ namespace Kontur.GameStats.Server
         }
 
         [JsonProperty("endpoint")]
-        [System.ComponentModel.DataAnnotations.Schema.Column("endpoint")]
+        [Column("endpoint")]
         public string Endpoint { get; set; }
 
         [JsonProperty("info")]
@@ -39,7 +39,7 @@ namespace Kontur.GameStats.Server
 
         public override int GetHashCode()
         {
-            return Endpoint.GetHashCode() * 47;
+            return Endpoint.GetHashCode() * 47;//грубая ошибка: Endpoint можно извне присвоить другое значение, тогда хэш код у объекта изменится
         }
     }
 
@@ -51,7 +51,7 @@ namespace Kontur.GameStats.Server
         }
 
         [JsonIgnore]
-        public string Endpoint { get; set; }
+        public string Endpoint { get; set; }//уверен что это поле вообще хоть где то необходимо?
 
         [JsonProperty("name")]
         public string Name { get; set; }

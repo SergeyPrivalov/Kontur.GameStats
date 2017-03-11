@@ -97,6 +97,7 @@ namespace Kontur.GameStats.Server
                 }
         }
 
+        //декомпозируй метод, он слишком перегружен
         private async Task HandleContextAsync(HttpListenerContext listenerContext)
         {
             var request = listenerContext.Request;
