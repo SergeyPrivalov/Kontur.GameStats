@@ -11,7 +11,7 @@ namespace Kontur.GameStats.Server
 
         public ServerDataBase()
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}", true))//тут true по дефолту. можно не писать явно
             {
                 connection.CreateTable<AdvertiseQueryServer>();
                 connection.CreateTable<GameMode>();
@@ -22,7 +22,7 @@ namespace Kontur.GameStats.Server
 
         public void AddAdvertServer(AdvertiseQueryServer advertiseQueryServer)
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}", true))//тут true по дефолту. можно не писать явно
             {
                 connection.Insert(advertiseQueryServer);
                 foreach (var gameMode in advertiseQueryServer.Info.GameModes)
@@ -36,7 +36,7 @@ namespace Kontur.GameStats.Server
 
         public void AddGameServer(GameServer gameServer)
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}", true))//тут true по дефолту. можно не писать явно
             {
                 connection.Insert(gameServer);
                 var players = gameServer.Scoreboard;
@@ -56,7 +56,7 @@ namespace Kontur.GameStats.Server
 
         public void UpdateAdvertServer(AdvertiseQueryServer advertiseQueryServer)
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}", true))//тут true по дефолту. можно не писать явно
             {
                 connection.CreateCommand(
                     $"DELETE FROM AdvertiseQueryServer WHERE endpoint = {advertiseQueryServer.Endpoint}; " +
@@ -69,7 +69,7 @@ namespace Kontur.GameStats.Server
         public ConcurrentDictionary<string, AdvertiseQueryServer> ReadAdvertServers()
         {
             var serversCollection = new ConcurrentDictionary<string, AdvertiseQueryServer>();
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}", true))//тут true по дефолту. можно не писать явно
             {
                 var advertServers = connection.Table<AdvertiseQueryServer>();
                 var gameModes = connection.Table<GameMode>();
@@ -109,6 +109,9 @@ namespace Kontur.GameStats.Server
                 foreach (var gameServer in gameServers)
                 {
                     var scoreboard = players
+                        //кажется эти 2 Where можно объединить в один. 
+                        //Опять же каждый вызов этого метода под капотом создает огромную кучу дополниетльных объектов в куче
+                        //а здесь это не имеет смысл
                         .Where(x => x.Endpoint == gameServer.Endpoint)
                         .Where(x => x.Date == gameServer.DateAndTime)
                         .OrderBy(x => x.Place)

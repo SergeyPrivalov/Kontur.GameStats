@@ -5,7 +5,7 @@ namespace Kontur.GameStats.Server
     public class ServerStats
     {
         [JsonProperty("totalMatchesPlayed")]
-        public int TotalMatchesPlaed { get; set; }
+        public int TotalMatchesPlayed { get; set; }
 
         [JsonProperty("maximumMatchesPerDay")]
         public int MaximumMatchesPerDay { get; set; }

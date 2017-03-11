@@ -146,9 +146,12 @@ namespace Kontur.GameStats.Server
         private RequestHandlingResult GetPlayersStatistic(string request)
         {
             var splitRequest = request.Split('/');
+            //tolower затем еще один tolower - это неприемлемо. на каждый вызов этого метода создаётся новый объекто строки.
             var name = splitRequest[0].ToLower();
             var games = GameServers
-                .Where(x => x.Scoreboard.Any(y => y.Name.ToLower() == name)).ToArray();
+                //лучше написать так y.Name.Equals(name, StringComparison.InvariantCultureIgnoreCase)
+                .Where(x => x.Scoreboard.Any(y => y.Name.ToLower() == name))
+                .ToArray();
             if (games.Length == 0)
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             return RequestHandlingResult.Successfull(
@@ -159,16 +162,19 @@ namespace Kontur.GameStats.Server
         {
             var splitRequest = ReportRegex.Split(request)
                 .Where(x => x != "")
+                //.Where(x => !string.IsNullOrEmpty(x)) это лучше
                 .ToArray();
             var n = 5;
             if (splitRequest.Length > 1)
                 n = GetNInRightDiapason(int.Parse(splitRequest[1]));
             if (n == 0 || GameServers.Count == 0)
-                return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(new string[] {})));
+                return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(new string[] {})));//что мешает написать new string[0] так и остаётся загадкой
             switch (splitRequest[0])
             {
                 case "recent-matches":
                     return
+                        //вот эти длинные партянки кода крайне неприятны глазу.
+                        //даже читать их не хочется
                         RequestHandlingResult.Successfull(
                             GetBytes(jsonSerializer.Serialize(statistic.GetRecentMatches(n, GameServers))));
                 case "best-players":
@@ -184,7 +190,7 @@ namespace Kontur.GameStats.Server
             }
         }
 
-        private static int GetNInRightDiapason(int n)
+        private static int GetNInRightDiapason(int n)//лучше не стало, название стало еще более непонятным
         {
             if (n <= 0) return 0;
             return n >= 50 ? 50 : n;
@@ -235,14 +241,18 @@ namespace Kontur.GameStats.Server
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
             return
                 RequestHandlingResult.Successfull(
+                    //опять длинная вложенность вызовов. Это неприятно читать
                     GetBytes(jsonSerializer.Serialize(games.First(x => x.DateAndTime == dateTime))));
+            
         }
 
+        //это можно сделать как Extension методы, заодно покажешь, что умеешь этим инстументов пользовтаься
         private byte[] GetBytes(string str)
         {
             return Encoding.ASCII.GetBytes(str);
         }
 
+        //это можно сделать как Extension методы, заодно покажешь, что умеешь этим инстументов пользовтаься
         public string GetStringFromByteArray(byte[] bytes)
         {
             return Encoding.UTF8.GetString(bytes);
