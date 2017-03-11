@@ -88,7 +88,6 @@ namespace Kontur.GameStats.Server
                         Name = advertServer.Name,
                         Info = new Information
                         {
-                            //Endpoint = advertServer.Endpoint,
                             Name = advertServer.Name,
                             GameModes = modeDictionary[advertServer.Endpoint].ToArray()
                         }
@@ -101,7 +100,7 @@ namespace Kontur.GameStats.Server
 
         public BlockingCollection<GameServer> ReadGameServers()
         {
-            using (var connection = new SQLiteConnection($"{baseName}", true))
+            using (var connection = new SQLiteConnection($"{baseName}"))
             {
                 var gamesCollection = new BlockingCollection<GameServer>();
                 var gameServers = connection.Table<GameServer>();

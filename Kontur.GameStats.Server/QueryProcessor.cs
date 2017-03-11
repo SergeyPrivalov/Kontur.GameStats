@@ -3,9 +3,8 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Linq;
 using System.Net;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.RegularExpressions;
+using ExtensionsMethods;
 
 namespace Kontur.GameStats.Server
 {
@@ -154,8 +153,8 @@ namespace Kontur.GameStats.Server
                 .ToArray();
             if (games.Length == 0)
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
-            return RequestHandlingResult.Successfull(
-                GetBytes(jsonSerializer.Serialize(statistic.GetPlayerStatistic(name, games))));
+            var serializStatistic = jsonSerializer.Serialize(statistic.GetPlayerStatistic(name, games));
+            return RequestHandlingResult.Successfull(serializStatistic.GetBytesInUnicode());
         }
 
         private RequestHandlingResult GetReport(string request)
@@ -167,7 +166,10 @@ namespace Kontur.GameStats.Server
             if (splitRequest.Length > 1)
                 n = GetRightCountOfItems(int.Parse(splitRequest[1]));
             if (n == 0 || GameServers.Count == 0)
-                return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(new string[0])));
+            {
+                var emptyAnswer = jsonSerializer.Serialize(new string[0]);
+                return RequestHandlingResult.Successfull(emptyAnswer.GetBytesInUnicode());
+            }
             object reportResult;
             switch (splitRequest[0])
             {
@@ -183,7 +185,8 @@ namespace Kontur.GameStats.Server
                 default:
                     return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
-            return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(reportResult)));
+            var serializeReport = jsonSerializer.Serialize(reportResult);
+            return RequestHandlingResult.Successfull(serializeReport.GetBytesInUnicode());
         }
 
         private static int GetRightCountOfItems(int countOfItems)
@@ -196,30 +199,31 @@ namespace Kontur.GameStats.Server
         {
             var splitedRequest = ServerInfoRegex.Split(request);
             if (splitedRequest[1] == "info")
-                return RequestHandlingResult.Successfull(GetBytes(jsonSerializer.Serialize(AdvertiseServers.ToArray())));
+            {
+                var serializeServers = jsonSerializer.Serialize(AdvertiseServers.Values.ToArray());
+                return RequestHandlingResult.Successfull(serializeServers.GetBytesInUnicode());
+            }
             var endpoint = splitedRequest[1];
             var neededGames = GameServers.Where(x => x.Endpoint == endpoint).ToArray();
             var neededAdvertServer = AdvertiseServers.Where(x => x.Key == endpoint).ToArray();
             if (!neededAdvertServer.Any() && neededGames.Length == 0)
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
+            object informations;
             switch (splitedRequest[2])
             {
                 case "info":
-                    return RequestHandlingResult.Successfull(GetBytes(GetAdvertServer(neededAdvertServer[0].Value)));
+                    informations = neededAdvertServer[0].Value.Info;
+                    break;
                 case "matches":
                     return GetAdvertMatch(splitedRequest[3], neededGames);
                 case "stats":
-                    return
-                        RequestHandlingResult.Successfull(
-                            GetBytes(jsonSerializer.Serialize(statistic.GetServerStatistic(neededGames))));
+                    informations = statistic.GetServerStatistic(neededGames);
+                    break;
                 default:
                     return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
-        }
-
-        private string GetAdvertServer(AdvertiseQueryServer advertServer)
-        {
-            return jsonSerializer.Serialize(advertServer.Info);
+            var serializeInformation = jsonSerializer.Serialize(informations);
+            return RequestHandlingResult.Successfull(serializeInformation.GetBytesInUnicode());
         }
 
         private RequestHandlingResult GetAdvertMatch(string date, GameServer[] games)
@@ -233,21 +237,11 @@ namespace Kontur.GameStats.Server
             {
                 return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
             }
-            if (GameServers.All(x => x.DateAndTime != dateTime))
+            var match = games.Where(x => x.DateAndTime == dateTime).ToArray();
+            if (match.Length == 0)
                 return RequestHandlingResult.Fail(HttpStatusCode.NotFound);
-            return
-                RequestHandlingResult.Successfull(
-                    GetBytes(jsonSerializer.Serialize(games.First(x => x.DateAndTime == dateTime))));
-        }
-
-        private byte[] GetBytes(string str)
-        {
-            return Encoding.Unicode.GetBytes(str);
-        }
-
-        public string GetStringFromByteArray(byte[] bytes)
-        {
-            return Encoding.Unicode.GetString(bytes);
+            var serializeMatch = jsonSerializer.Serialize(match[0]);
+            return RequestHandlingResult.Successfull(serializeMatch.GetBytesInUnicode());
         }
     }
 }

@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
+using ExtensionsMethods;
 
 namespace Kontur.GameStats.Server.Tests
 {
@@ -36,17 +38,16 @@ namespace Kontur.GameStats.Server.Tests
 
         private readonly JsonSerializer jsonSerializer = new JsonSerializer();
 
-
         [TestMethod]
         public void GetServerInfo()
         {
-            queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint,firstServer,(s, server) => firstServer);
+            queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint, firstServer, (s, server) => firstServer);
             queryProcessor.AdvertiseServers.AddOrUpdate(secondServer.Endpoint, secondServer, (s, server) => secondServer);
-            var info = jsonSerializer.Serialize(queryProcessor.AdvertiseServers.ToArray());
+            var info = jsonSerializer.Serialize(queryProcessor.AdvertiseServers.Values.ToArray());
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/info"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(info, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(info, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -60,7 +61,7 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor.HandleGet(uri);
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(info, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(info, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -70,7 +71,7 @@ namespace Kontur.GameStats.Server.Tests
                 queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/17.42.3.3-1337/info"));
 
             Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
-            Assert.AreEqual("", queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual("", result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -82,12 +83,11 @@ namespace Kontur.GameStats.Server.Tests
             queryProcessor.GameServers.Add(gameServer);
             var info = JsonConvert.SerializeObject(gameServer);
 
-
             var result = queryProcessor.HandleGet(
                 new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-11-22T20:17:00Z"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(info, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(info, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -97,15 +97,17 @@ namespace Kontur.GameStats.Server.Tests
                 new Uri("http://localhost:8080/servers/1.2.2.8-1337/matches/2017-01-22T15:17:00Z"));
 
             Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
-            Assert.AreEqual("", queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual("", result.Response.GetUnicodeString());
         }
 
         [TestMethod]
         public void GetNotPutMatch()
         {
-            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-01-22T15:17:00Z"));
+            var result =
+                queryProcessor.HandleGet(
+                    new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-01-22T15:17:00Z"));
 
-            Assert.AreEqual(HttpStatusCode.NotFound,result.Status);
+            Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
         }
 
         [TestMethod]

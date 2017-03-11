@@ -112,6 +112,7 @@
     <Compile Include="IJsonSerializer.cs" />
     <Compile Include="IStatServerRequestHandler.cs" />
     <Compile Include="JsonSerializer.cs" />
+    <Compile Include="MyExtensions.cs" />
     <Compile Include="Player.cs" />
     <Compile Include="PlayerStats.cs" />
     <Compile Include="PopularServer.cs" />

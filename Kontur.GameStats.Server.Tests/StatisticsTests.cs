@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using ExtensionsMethods;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Kontur.GameStats.Server.Tests
@@ -70,7 +71,7 @@ namespace Kontur.GameStats.Server.Tests
                 .HandleGet(new Uri("http://localhost:8080/servers/12.12.12.12-1333/stats"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(answer, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -95,7 +96,7 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/players/player20/stats"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answerString, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(answerString, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -116,7 +117,7 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/10"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(answer, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -137,7 +138,7 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(answer, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -158,7 +159,7 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/100"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(answer, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -169,7 +170,7 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/-5"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(answer, result.Response.GetUnicodeString());
         }
 
         [TestMethod]
@@ -189,7 +190,7 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/popular-servers/15"));
 
             Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, queryProcessor.GetStringFromByteArray(result.Response));
+            Assert.AreEqual(answer, result.Response.GetUnicodeString());
         }
 
         private void MultiAdd(string endpoint, DateTime date, int n, GameServer gameServer)

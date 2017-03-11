@@ -10,7 +10,7 @@ namespace Kontur.GameStats.Server
         [JsonProperty("timestamp")]
         public string Timestamp { get; set; }
 
-        [JsonProperty("result")]
+        [JsonProperty("results")]
         public GameServer Result { get; set; }
     }
 }
