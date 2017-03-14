@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json;
 using ExtensionsMethods;
+using FluentAssertions;
+using NUnit.Framework;
 
 namespace Kontur.GameStats.Server.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class GetServerInfoTests
     {
         private readonly AdvertiseQueryServer firstServer =
@@ -26,8 +27,6 @@ namespace Kontur.GameStats.Server.Tests
                     new Player("Player2", 2, 2, 21)
                 });
 
-        private readonly QueryProcessor queryProcessor = new QueryProcessor();
-
         private readonly AdvertiseQueryServer secondServer =
             new AdvertiseQueryServer("62.210.26.88-1337",
                 new Information
@@ -36,21 +35,31 @@ namespace Kontur.GameStats.Server.Tests
                     GameModes = new[] {"DM"}
                 });
 
-        private readonly JsonSerializer jsonSerializer = new JsonSerializer();
+        private JsonSerializer jsonSerializer;
+        private QueryProcessor queryProcessor;
 
-        [TestMethod]
+        [SetUp]
+        public void SetUp()
+        {
+            queryProcessor = new QueryProcessor();
+            jsonSerializer = new JsonSerializer();
+        }
+
+        [Test]
         public void GetServerInfo()
         {
             queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint, firstServer, (s, server) => firstServer);
             queryProcessor.AdvertiseServers.AddOrUpdate(secondServer.Endpoint, secondServer, (s, server) => secondServer);
             var info = jsonSerializer.Serialize(queryProcessor.AdvertiseServers.Values.ToArray());
+
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/info"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(info, result.Response.GetUnicodeString());
+
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(info.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetAdvertInfo()
         {
             var info = "{\"name\":\"] My P3rfect Server [\"," +
@@ -60,21 +69,21 @@ namespace Kontur.GameStats.Server.Tests
 
             var result = queryProcessor.HandleGet(uri);
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(info, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(info.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetNotAdvertInfo()
         {
-            var result =
-                queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/17.42.3.3-1337/info"));
+            var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/17.42.3.3-1337/info"));
 
-            Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
-            Assert.AreEqual("", result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.NotFound);
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii(),
+                "because this server didn't send advertise request");
         }
 
-        [TestMethod]
+        [Test]
         public void GetMatchInfo()
         {
             queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint, firstServer, (s, server) => firstServer);
@@ -86,36 +95,38 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor.HandleGet(
                 new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-11-22T20:17:00Z"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(info, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(info.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetNoAdvertMatchInfo()
         {
             var result = queryProcessor.HandleGet(
                 new Uri("http://localhost:8080/servers/1.2.2.8-1337/matches/2017-01-22T15:17:00Z"));
 
-            Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
-            Assert.AreEqual("", result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.NotFound, "because not advert server send statistic");
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetNotPutMatch()
         {
             var result =
                 queryProcessor.HandleGet(
                     new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches/2017-01-22T15:17:00Z"));
 
-            Assert.AreEqual(HttpStatusCode.NotFound, result.Status);
+            result.Status.Should().Be(HttpStatusCode.NotFound, "because this match didn't put");
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void WrongRequest()
         {
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/servers/167.42.23.32-1337/matches"));
 
-            Assert.AreEqual(HttpStatusCode.BadRequest, result.Status);
+            result.Status.Should().Be(HttpStatusCode.BadRequest);
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
         }
     }
 }

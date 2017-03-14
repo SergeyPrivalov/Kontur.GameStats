@@ -2,11 +2,12 @@
 using System.Linq;
 using System.Net;
 using ExtensionsMethods;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using FluentAssertions;
+using NUnit.Framework;
 
 namespace Kontur.GameStats.Server.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class StatisticsTests
     {
         private readonly DateTime date1 = new DateTime(2020, 01, 22, 15, 16, 22);
@@ -47,11 +48,19 @@ namespace Kontur.GameStats.Server.Tests
                     new Player("Player3", 2, 2, 21)
                 });
 
-        private readonly QueryProcessor queryProcessor = new QueryProcessor();
-        private readonly GameStatistic statistic = new GameStatistic();
-        private readonly JsonSerializer jsonSerializer = new JsonSerializer();
+        private QueryProcessor queryProcessor;
+        private GameStatistic statistic;
+        private JsonSerializer jsonSerializer;
 
-        [TestMethod]
+        [SetUp]
+        public void SetUp()
+        {
+            queryProcessor = new QueryProcessor();
+            statistic = new GameStatistic();
+            jsonSerializer = new JsonSerializer();
+        }
+
+        [Test]
         public void GetServersStats()
         {
             var endpoint = "12.12.12.12-1333";
@@ -70,36 +79,36 @@ namespace Kontur.GameStats.Server.Tests
             var result = queryProcessor
                 .HandleGet(new Uri("http://localhost:8080/servers/12.12.12.12-1333/stats"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(answer.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetPlayerStats()
         {
-            var endpoint = "12.12.12.12-1333";
-            queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint,firstServer, (s, server) => firstServer);
+            const string endpoint = "12.12.12.12-1333";
+            queryProcessor.AdvertiseServers.AddOrUpdate(firstServer.Endpoint, firstServer, (s, server) => firstServer);
             MultiAdd(endpoint, date1, 2, gameServer1);
             MultiAdd(endpoint, date1, 2, gameServer3);
             MultiAdd(endpoint, date2, 2, gameServer2);
-            var answerString = "{\"totalMatchesPlayed\":6," +
-                               "\"totalMatchesWon\":4," +
-                               "\"favoriteServer\":\"12.12.12.12-1333\"," +
-                               "\"uniqueServers\":1," +
-                               "\"favoriteGameMode\":\"DM\"," +
-                               "\"averageScoreboardPercent\":83.333333," +
-                               "\"maximumMatchesPerDay\":4," +
-                               "\"averageMatchesPerDay\":3.0," +
-                               "\"lastMatchPlayed\":\"2020-01-23T14:00:00Z\"," +
-                               "\"killToDeathRatio\":1.62963}";
+            const string answerString = "{\"totalMatchesPlayed\":6," +
+                                        "\"totalMatchesWon\":4," +
+                                        "\"favoriteServer\":\"12.12.12.12-1333\"," +
+                                        "\"uniqueServers\":1," +
+                                        "\"favoriteGameMode\":\"DM\"," +
+                                        "\"averageScoreboardPercent\":83.333333," +
+                                        "\"maximumMatchesPerDay\":4," +
+                                        "\"averageMatchesPerDay\":3.0," +
+                                        "\"lastMatchPlayed\":\"2020-01-23T14:00:00Z\"," +
+                                        "\"killToDeathRatio\":1.62963}";
 
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/players/player20/stats"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answerString, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(answerString.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetRecentMatches()
         {
             var answer = jsonSerializer.Serialize(queryProcessor.GameServers
@@ -116,11 +125,11 @@ namespace Kontur.GameStats.Server.Tests
 
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/10"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(answer.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetRecentMatchesWithoutCount()
         {
             var answer = jsonSerializer.Serialize(queryProcessor.GameServers
@@ -137,11 +146,11 @@ namespace Kontur.GameStats.Server.Tests
 
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(answer.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetRecentMatchesMoreThan50()
         {
             var answer = jsonSerializer.Serialize(queryProcessor.GameServers
@@ -158,22 +167,22 @@ namespace Kontur.GameStats.Server.Tests
 
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/100"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(answer.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetRecentMatchesLessThan0()
         {
             var answer = "[]";
 
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/recent-matches/-5"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(answer.GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void GetPopularServer()
         {
             var answer = jsonSerializer.Serialize(queryProcessor.AdvertiseServers
@@ -189,8 +198,8 @@ namespace Kontur.GameStats.Server.Tests
 
             var result = queryProcessor.HandleGet(new Uri("http://localhost:8080/reports/popular-servers/15"));
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
-            Assert.AreEqual(answer, result.Response.GetUnicodeString());
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo(answer.GetBytesInAscii());
         }
 
         private void MultiAdd(string endpoint, DateTime date, int n, GameServer gameServer)

@@ -1,15 +1,23 @@
 ﻿using System;
 using System.Net;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using ExtensionsMethods;
+using FluentAssertions;
+using NUnit.Framework;
 
 namespace Kontur.GameStats.Server.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class PutRequestTests
     {
-        private readonly QueryProcessor queryProcessor = new QueryProcessor();
+        private QueryProcessor queryProcessor;
 
-        [TestMethod]
+        [SetUp]
+        public void SetUp()
+        {
+            queryProcessor = new QueryProcessor();
+        }
+
+        [Test]
         public void PutAdvertiseRequest()
         {
             var requestString = new Uri("http://localhost:8080/servers/1.2.3.4-1111/info");
@@ -18,10 +26,11 @@ namespace Kontur.GameStats.Server.Tests
 
             var result = queryProcessor.HandlePut(requestString, body);
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void SameAdvertiseRequest()
         {
             var requestString = new Uri("http://localhost:8080/servers/1.2.3.4-1111/info");
@@ -30,24 +39,27 @@ namespace Kontur.GameStats.Server.Tests
             queryProcessor.HandlePut(requestString, body);
             var length = queryProcessor.AdvertiseServers.Count;
 
-            queryProcessor.HandlePut(requestString, body);
+            var result = queryProcessor.HandlePut(requestString, body);
 
-            Assert.AreEqual(length, queryProcessor.AdvertiseServers.Count);
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
+            queryProcessor.AdvertiseServers.Count.Should().Be(length);
         }
 
-        [TestMethod]
+        [Test]
         public void EmtyAdvertiseRequest()
         {
-            var requestString = new Uri("http://localhost:8080/servers//info");
+            var requestString = new Uri("http://localhost:8080/");
             var body = "{\"name\": \"] My P3rfect Server [\"," +
                        "\"gameModes\": [ \"DM\", \"TDM\" ]}";
 
             var result = queryProcessor.HandlePut(requestString, body);
 
-            Assert.AreEqual(HttpStatusCode.BadRequest, result.Status);
+            result.Status.Should().Be(HttpStatusCode.BadRequest);
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void PutMatches()
         {
             queryProcessor.HandlePut(new Uri("http://localhost:8080/servers/blabla-8080/info"),
@@ -67,10 +79,11 @@ namespace Kontur.GameStats.Server.Tests
 
             var result = queryProcessor.HandlePut(requestString, body);
 
-            Assert.AreEqual(HttpStatusCode.Accepted, result.Status);
+            result.Status.Should().Be(HttpStatusCode.Accepted);
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void PutNoAdveriseMatches()
         {
             var requestString = new Uri("http://localhost:8080/servers/1.1.1.1-1333/matches/2012-12-12T12:12:12Z");
@@ -86,17 +99,19 @@ namespace Kontur.GameStats.Server.Tests
 
             var result = queryProcessor.HandlePut(requestString, body);
 
-            Assert.AreEqual(HttpStatusCode.BadRequest, result.Status);
+            result.Status.Should().Be(HttpStatusCode.BadRequest);
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
         }
 
-        [TestMethod]
+        [Test]
         public void PutEmptyBody()
         {
             var requestString = new Uri("http://localhost:8080/servers/1.1.1.1-1333/matches/2012-12-12T12:12:12Z");
 
             var result = queryProcessor.HandlePut(requestString, "");
 
-            Assert.AreEqual(HttpStatusCode.BadRequest, result.Status);
+            result.Status.Should().Be(HttpStatusCode.BadRequest);
+            result.Response.ShouldAllBeEquivalentTo("".GetBytesInAscii());
         }
     }
 }

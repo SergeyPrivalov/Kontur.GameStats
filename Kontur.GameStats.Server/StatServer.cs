@@ -107,14 +107,14 @@ namespace Kontur.GameStats.Server
                 var sr = new StreamReader(request.InputStream);
                 requestHandlingResult = handler.HandlePut(request.Url, sr.ReadToEnd());
                 if (requestHandlingResult.Status != HttpStatusCode.Accepted)
-                    response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    response.StatusCode = (int) HttpStatusCode.BadRequest;
                 response.ContentType = "message/http";
             }
             else if (request.HttpMethod == "GET")
             {
                 requestHandlingResult = handler.HandleGet(request.Url);
                 if (requestHandlingResult.Status != HttpStatusCode.Accepted)
-                    response.StatusCode = (int)requestHandlingResult.Status;
+                    response.StatusCode = (int) requestHandlingResult.Status;
                 response.ContentType = "application/json";
             }
             response.ContentLength64 = requestHandlingResult.Response.Length;
@@ -129,7 +129,7 @@ namespace Kontur.GameStats.Server
             var requestHandlingResult = ProcessRequest(request, response);
             using (var outputStream = response.OutputStream)
             {
-                await outputStream.WriteAsync(requestHandlingResult.Response,0,requestHandlingResult.Response.Length);
+                await outputStream.WriteAsync(requestHandlingResult.Response, 0, requestHandlingResult.Response.Length);
             }
         }
     }
