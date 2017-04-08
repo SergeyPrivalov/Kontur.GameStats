@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Kontur.GameStats.Server
 {
-    public class GameStatistic
+    public class GameStatistic : IGameStatistic
     {
         public ServerStats GetServerStatistic(GameServer[] games)
         {

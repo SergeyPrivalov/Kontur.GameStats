@@ -14,7 +14,7 @@ namespace Kontur.GameStats.Server.Tests
         [SetUp]
         public void SetUp()
         {
-            queryProcessor = new QueryProcessor();
+            queryProcessor = new QueryProcessor(new ServerDataBase(), new GameStatistic(), new JsonSerializer());
         }
 
         [Test]

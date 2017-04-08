@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -29,19 +30,19 @@ namespace Kontur.GameStats.Server
         private static readonly Regex ReportRegex =
             new Regex("^(recent-matches|best-players|popular-servers)/?", RegexOptions.Compiled);
 
-        private readonly ServerDataBase dataBase;
-        private readonly JsonSerializer jsonSerializer;
-        private readonly GameStatistic statistic;
+        private readonly IServerDataBase dataBase;
+        private readonly IJsonSerializer jsonSerializer;
+        private readonly IGameStatistic statistic;
 
         public ConcurrentDictionary<string, AdvertiseQueryServer> AdvertiseServers { get; }
 
         public BlockingCollection<GameServer> GameServers { get; }
 
-        public QueryProcessor()
+        public QueryProcessor(IServerDataBase dataBase, IGameStatistic gameStatistic, IJsonSerializer serializer)
         {
-            dataBase = new ServerDataBase();
-            statistic = new GameStatistic();
-            jsonSerializer = new JsonSerializer();
+            this.dataBase = dataBase;
+            statistic = gameStatistic;
+            jsonSerializer = serializer;
             AdvertiseServers = dataBase.ReadAdvertServers();
             GameServers = dataBase.ReadGameServers();
         }
@@ -128,20 +129,18 @@ namespace Kontur.GameStats.Server
         private RequestHandlingResult ProcessGetRequest(string requestString)
         {
             var splitedRequest = GetRequestRegex.Split(requestString);
-
             if (splitedRequest.Length < 2) return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
 
-            switch (splitedRequest[1])
+            var typeOfRequest = new Dictionary<string, Func<string, RequestHandlingResult>>
             {
-                case "servers":
-                    return GetServerInformation(splitedRequest[2]);
-                case "players":
-                    return GetPlayersStatistic(splitedRequest[2]);
-                case "reports":
-                    return GetReport(splitedRequest[2]);
-                default:
-                    return RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
-            }
+                {"servers", GetServerInformation},
+                {"players", GetPlayersStatistic},
+                {"reports", GetReport}
+            };
+
+            return typeOfRequest.ContainsKey(splitedRequest[1])
+                ? typeOfRequest[splitedRequest[1]](splitedRequest[2])
+                : RequestHandlingResult.Fail(HttpStatusCode.BadRequest);
         }
 
         private RequestHandlingResult GetPlayersStatistic(string request)
@@ -171,13 +170,18 @@ namespace Kontur.GameStats.Server
                 return RequestHandlingResult.Successfull(emptyAnswer.GetBytesInAscii());
             }
             object reportResult;
+            var methods = new Dictionary<string, Func<int, BlockingCollection<GameServer>, object>>
+            {
+                {"recent-matches", (count, games) => statistic.GetRecentMatches(count, games)},
+                {"best-players", (count, games) => statistic.GetBestPlayers(count, games)}
+            };
             switch (splitRequest[0])
             {
                 case "recent-matches":
-                    reportResult = statistic.GetRecentMatches(n, GameServers);
+                    reportResult = methods[splitRequest[0]](n, GameServers);
                     break;
                 case "best-players":
-                    reportResult = statistic.GetBestPlayers(n, GameServers);
+                    reportResult = methods[splitRequest[0]](n, GameServers);
                     break;
                 case "popular-servers":
                     reportResult = statistic.GetPopularServers(n, AdvertiseServers, GameServers);

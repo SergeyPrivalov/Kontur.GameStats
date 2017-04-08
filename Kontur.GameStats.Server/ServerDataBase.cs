@@ -5,7 +5,7 @@ using SQLite;
 
 namespace Kontur.GameStats.Server
 {
-    public class ServerDataBase
+    public class ServerDataBase : IServerDataBase
     {
         private readonly string baseName = "StatisticServer.db";
 

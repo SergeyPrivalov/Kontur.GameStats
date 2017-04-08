@@ -1,5 +1,6 @@
 ﻿using System;
 using Fclp;
+using Ninject;
 
 namespace Kontur.GameStats.Server
 {
@@ -28,7 +29,12 @@ namespace Kontur.GameStats.Server
 
         private static void RunServer(Options options)
         {
-            var processor = new QueryProcessor();
+            var container = new StandardKernel();
+            container.Bind<IServerDataBase>().To<ServerDataBase>();
+            container.Bind<IGameStatistic>().To<GameStatistic>();
+            container.Bind<IJsonSerializer>().To<JsonSerializer>();
+            container.Bind<QueryProcessor>().ToSelf();
+            var processor = container.Get<QueryProcessor>();//new QueryProcessor(new ServerDataBase(), new GameStatistic(), new JsonSerializer());
             using (var server = new StatServer(processor))
             {
                 server.Start(options.Prefix);
