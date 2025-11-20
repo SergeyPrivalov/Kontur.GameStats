@@ -1,9 +1,12 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Newtonsoft.Json;
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет игрока с его статистикой в матче.
+    /// </summary>
     [Table("players")]
     public class Player
     {

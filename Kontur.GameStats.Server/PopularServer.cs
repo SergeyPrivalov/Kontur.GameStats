@@ -1,7 +1,10 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет информацию о популярном игровом сервере.
+    /// </summary>
     public class PopularServer
     {
         [JsonProperty("endpoint")]

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using ExtensionsMethods;
 using FluentAssertions;
@@ -6,6 +6,9 @@ using NUnit.Framework;
 
 namespace Kontur.GameStats.Server.Tests
 {
+    /// <summary>
+    /// Содержит модульные тесты для проверки корректности обработки HTTP PUT-запросов (регистрация серверов и матчей).
+    /// </summary>
     [TestFixture]
     public class PutRequestTests
     {

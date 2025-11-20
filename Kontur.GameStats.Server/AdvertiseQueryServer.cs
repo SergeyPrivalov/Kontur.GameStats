@@ -1,8 +1,11 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using SQLite;
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет информацию об игровом сервере, зарегистрированном в системе статистики.
+    /// </summary>
     [Table("AdvertiseQueryServer")]
     public class AdvertiseQueryServer
     {
@@ -43,6 +46,9 @@ namespace Kontur.GameStats.Server
         }
     }
 
+    /// <summary>
+    /// Представляет основную информацию о сервере: название и поддерживаемые игровые режимы.
+    /// </summary>
     public class Information
     {
         [JsonProperty("name")]

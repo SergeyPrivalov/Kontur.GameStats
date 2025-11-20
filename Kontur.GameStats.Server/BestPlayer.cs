@@ -2,6 +2,9 @@
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет игрока с наилучшим соотношением убийств к смертям.
+    /// </summary>
     public class BestPlayer
     {
         [JsonProperty("name")]

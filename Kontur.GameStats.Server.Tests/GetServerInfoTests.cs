@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using Newtonsoft.Json;
@@ -8,6 +8,9 @@ using NUnit.Framework;
 
 namespace Kontur.GameStats.Server.Tests
 {
+    /// <summary>
+    /// Содержит модульные тесты для проверки корректности обработки HTTP GET-запросов на получение информации о серверах и матчах.
+    /// </summary>
     [TestFixture]
     public class GetServerInfoTests
     {

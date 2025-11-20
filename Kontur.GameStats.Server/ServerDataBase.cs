@@ -5,10 +5,16 @@ using SQLite;
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Отвечает за хранение и извлечение данных о серверах и матчах из базы данных.
+    /// </summary>
     public class ServerDataBase
     {
         private readonly string baseName = "StatisticServer.db";
 
+        /// <summary>
+        /// Инициализирует новый экземпляр класса ServerDataBase и создает необходимые таблицы в базе данных.
+        /// </summary>
         public ServerDataBase()
         {
             using (var connection = new SQLiteConnection($"{baseName}"))
@@ -20,6 +26,10 @@ namespace Kontur.GameStats.Server
             }
         }
 
+        /// <summary>
+        /// Добавляет информацию о рекламируемом сервере в базу данных, включая все поддерживаемые игровые режимы.
+        /// </summary>
+        /// <param name="advertiseQueryServer">Объект AdvertiseQueryServer с информацией о сервере для добавления.</param>
         public void AddAdvertServer(AdvertiseQueryServer advertiseQueryServer)
         {
             using (var connection = new SQLiteConnection($"{baseName}"))
@@ -34,6 +44,10 @@ namespace Kontur.GameStats.Server
             }
         }
 
+        /// <summary>
+        /// Добавляет информацию об игровом сервере (матче) в базу данных, включая статистику всех игроков из таблицы результатов.
+        /// </summary>
+        /// <param name="gameServer">Объект GameServer с информацией о матче для добавления.</param>
         public void AddGameServer(GameServer gameServer)
         {
             using (var connection = new SQLiteConnection($"{baseName}"))
@@ -54,6 +68,10 @@ namespace Kontur.GameStats.Server
             }
         }
 
+        /// <summary>
+        /// Обновляет информацию о рекламируемом сервере в базе данных. Удаляет старую информацию и добавляет новую. Использует AddAdvertServer для добавления обновленной информации.
+        /// </summary>
+        /// <param name="advertiseQueryServer">Объект AdvertiseQueryServer с обновленной информацией о сервере.</param>
         public void UpdateAdvertServer(AdvertiseQueryServer advertiseQueryServer)
         {
             using (var connection = new SQLiteConnection($"{baseName}"))
@@ -66,6 +84,10 @@ namespace Kontur.GameStats.Server
             }
         }
 
+        /// <summary>
+        /// Читает все рекламируемые серверы из базы данных и возвращает их в виде словаря, где ключ - endpoint сервера.
+        /// </summary>
+        /// <returns>Словарь рекламируемых серверов, где ключ - endpoint, значение - объект AdvertiseQueryServer.</returns>
         public ConcurrentDictionary<string, AdvertiseQueryServer> ReadAdvertServers()
         {
             var serversCollection = new ConcurrentDictionary<string, AdvertiseQueryServer>();
@@ -98,6 +120,10 @@ namespace Kontur.GameStats.Server
             return serversCollection;
         }
 
+        /// <summary>
+        /// Читает все игровые серверы (матчи) из базы данных и возвращает их в виде коллекции, включая таблицы результатов для каждого матча.
+        /// </summary>
+        /// <returns>Коллекция игровых серверов с восстановленными таблицами результатов.</returns>
         public BlockingCollection<GameServer> ReadGameServers()
         {
             using (var connection = new SQLiteConnection($"{baseName}"))

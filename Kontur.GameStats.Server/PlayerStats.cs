@@ -1,7 +1,10 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет агрегированную статистику игрока по всем сыгранным матчам.
+    /// </summary>
     public class PlayerStats
     {
         [JsonProperty("totalMatchesPlayed")]

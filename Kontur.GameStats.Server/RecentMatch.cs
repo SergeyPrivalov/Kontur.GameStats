@@ -1,7 +1,10 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет информацию о недавно сыгранном матче.
+    /// </summary>
     public class RecentMatch
     {
         [JsonProperty("server")]

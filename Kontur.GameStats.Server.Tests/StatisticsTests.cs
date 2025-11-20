@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Net;
 using ExtensionsMethods;
@@ -7,6 +7,9 @@ using NUnit.Framework;
 
 namespace Kontur.GameStats.Server.Tests
 {
+    /// <summary>
+    /// Содержит модульные тесты для проверки корректности вычисления статистики игроков, серверов и матчей.
+    /// </summary>
     [TestFixture]
     public class StatisticsTests
     {

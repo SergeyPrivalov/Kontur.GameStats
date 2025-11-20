@@ -1,9 +1,12 @@
-﻿using System;
+using System;
 using Newtonsoft.Json;
 using SQLite;
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет информацию об игровом матче, включая параметры игры и таблицу результатов.
+    /// </summary>
     [Table("GameServer")]
     public class GameServer
     {

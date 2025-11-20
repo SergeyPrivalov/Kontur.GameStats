@@ -1,7 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет игровой режим, поддерживаемый сервером.
+    /// </summary>
     [Table("GameModes")]
     internal class GameMode
     {

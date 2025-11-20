@@ -2,6 +2,9 @@
 
 namespace Kontur.GameStats.Server
 {
+    /// <summary>
+    /// Представляет агрегированную статистику по серверу игр.
+    /// </summary>
     public class ServerStats
     {
         [JsonProperty("totalMatchesPlayed")]
